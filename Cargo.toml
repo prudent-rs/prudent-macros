@@ -6,6 +6,8 @@ edition = "2018"
 license = "BSD-2-Clause OR Apache-2.0 OR MIT"
 
 # rust-version is recognized only since Rust 1.56, but that's OK.
+#
+# Tests require Rust 1.79+
 rust-version = "1.31"
 
 authors = ["Peter Lyons Kehl<peter.kehl@gmail.com>"]
