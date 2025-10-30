@@ -1,6 +1,6 @@
 [package]
 name = "prudent"
-version = "0.0.2-alpha"
+version = "0.0.3-alpha"
 edition = "2018"
 
 license = "BSD-2-Clause OR Apache-2.0 OR MIT"
@@ -17,8 +17,8 @@ categories = ["development-tools", "no-std", "no-std::no-alloc", "rust-patterns"
 
 keywords = ["safe", "safety", "unsafe", "isolation", "review"]
 
-repository = "https://github.com/peter-lyons-kehl/prudent"
-homepage = "https://github.com/peter-lyons-kehl/prudent"
+repository = "https://github.com/prudent-rs/prudent"
+homepage = "https://github.com/prudent-rs/prudent"
 
 [lints.rust]
 unexpected_cfgs = { level = "forbid"}
