@@ -225,7 +225,11 @@ impl<T> AsRefOrMut for T {}
 #[macro_export]
 macro_rules! unsafe_method_ref {
     ($self:expr, $fn:ident $(, $arg:expr)* ) => {
-        $crate::unsafe_method_internal_normalize!{ $self, () (.prudent_normalize_value_self_as_ref()) $fn $(, $arg)* }
+        //$crate::unsafe_method_internal_normalize!{ $self, () (.prudent_normalize_value_self_as_ref()) $fn $(, $arg)* }
+
+        // const-friendly; if it creates a double reference &&, because the given expression already
+        // yields a reference, that's OK. Rust will dereference it 2x.
+        $crate::unsafe_method_internal_normalize!{ $self, (&) () $fn $(, $arg)* }
     }
 }
 
@@ -233,6 +237,7 @@ macro_rules! unsafe_method_ref {
 #[macro_export]
 macro_rules! unsafe_method_mut {
     ($self:expr, $fn:ident $(, $arg:expr)* ) => {
+        // @TODO normal. prefix: &mut
         $crate::unsafe_method_internal_normalize!{ $self, () (.prudent_normalize_value_self_as_mut()) $fn $(, $arg)* }
     }
 }
@@ -261,7 +266,7 @@ macro_rules! unsafe_method_internal_normalize {
             use $crate::AsRefOrMut as _;
             let (tuple_tree, receiver) = (
                 $crate::unsafe_fn_internal_build_tuple_tree!{ $($arg),+ },
-                ( $self )$( $normalizer_suffix_part )*
+                $( $normalizer_prefix_part )* ( $self ) $( $normalizer_suffix_part )*
             );
             $crate::unsafe_method_internal! {
                 receiver,
@@ -276,7 +281,7 @@ macro_rules! unsafe_method_internal_normalize {
     ($self:expr, ( $( $normalizer_prefix_part:tt )* ) ( $( $normalizer_suffix_part:tt )* ) $fn:ident ) => {
         {
             use $crate::AsRefOrMut as _;
-            let receiver = ( $self )$( $normalizer_suffix_part )*;
+            let receiver = $( $normalizer_prefix_part )* ( $self ) $( $normalizer_suffix_part )*;
             #[allow(unsafe_code)]
             unsafe {
                 receiver. $fn()
