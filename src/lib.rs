@@ -105,6 +105,9 @@ extern crate alloc;
 /// };
 /// ```
 ///
+/// ```
+#[doc = include_str!("../simple_examples/fn_add_three/src/main.rs")]
+/// ```
 /// This does NOT accept closures, since, as of Rust 1.91.0, closures cannot be `unsafe`.
 #[macro_export]
 macro_rules! unsafe_fn {
