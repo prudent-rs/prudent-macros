@@ -58,11 +58,20 @@ extern crate alloc;
 /// any). If there was such a pair, it could be confused for a tuple. It would also be less readable
 /// when some parameters were tuples/complex expressions.
 ///
-///  @TODO replace with examples/ :
-/// ```compile_fail
-#[doc = include_str!("../violation_examples/unsafe_fn/zero_args/fn_expression.rs")]
-/// ```
 /// This does NOT accept closures, since, (as of Rust 1.91.0) closures cannot be `unsafe`.
+///
+/// # Possible violations
+///
+/// Zero arguments. The given expression (which evaluates to the function to be called) is `unsafe.`
+/// ```compile_fail
+#[doc = include_str!("../violation_coverage/unsafe_fn/zero_args/fn_expression.rs")]
+/// ```
+/// ```compile_fail
+#[doc = include_str!("../violation_coverage/unsafe_fn/some_args/fn_expression.rs")]
+/// ```
+/// ```compile_fail
+#[doc = include_str!("../violation_coverage/unsafe_fn/some_args/arg.rs")]
+/// ```
 #[macro_export]
 macro_rules! unsafe_fn {
     ( $fn:expr $(, $arg:expr)* ) => {
@@ -81,13 +90,27 @@ macro_rules! unsafe_fn {
         }
     };
 }
-
+// Same `compile_fail` tests as listed above for `unsafe_fn`, but here we validate the error
+// numbers.
+//
 // Error numbers are validated with `cargo +nightly test`, but NOT with
-// - `cargo nightly` nor
+// - `cargo +stable test` nor
 // - RUSTDOCFLAGS="..." cargo +nightly doc ...
 //
 /// ```compile_fail,E0133
-#[doc = include_str!("../violation_examples/unsafe_fn/zero_args/fn_expression.rs")]
+#[doc = include_str!("../violation_coverage/unsafe_fn/zero_args/fn_expression.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violation_coverage/unsafe_fn/some_args/fn_expression.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violation_coverage/unsafe_fn/some_args/arg.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
