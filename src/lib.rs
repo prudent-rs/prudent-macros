@@ -142,99 +142,25 @@ extern crate alloc;
 /// ```
 #[doc = include_str!("../simple_examples/fn_add_three/src/main.rs")]
 /// ```
-/// This does NOT accept closures, since, as of Rust 1.91.0, closures cannot be `unsafe`.
+/// This does NOT accept closures, since, (as of Rust 1.91.0) closures cannot be `unsafe`.
 #[macro_export]
 macro_rules! unsafe_fn {
-    ( $fn:expr $(, $arg:expr)+ ) => {
-        // Enclosed in a block, so that
-        // 1. the result can be used as a value in an outer expression, and
-        // 2. local variables don't conflict with the outer scope
+    ( $fn:expr $(, $arg:expr)* ) => {
+        // Enclosed in a block, so that the result can be used as a value in an outer expression.
         {
-            //@TODO remove accessors. Instead:
-            // - if false {...}: assign the tuple. Then unreachable!();
-            // - else {...}: original full call.
-            let (tuple_tree, fun) = ($crate::unsafe_fn_internal_build_tuple_tree!{ $($arg),+ }, $fn);
-
-            $crate::unsafe_fn_internal_build_accessors_and_call! {
-                fun,
-                tuple_tree,
-                ( $( $arg ),* ),
-                (0)
-            }
-        }
-    };
-    ($fn:expr) => {
-        {
-            let fun = $fn;
-            #[allow(unsafe_code)]
-            unsafe {
-                fun()
+            if false {
+                let _ = $fn;
+                $( let _ = $arg; )*
+                unreachable!()
+            } else {
+                #[allow(unsafe_code)]
+                unsafe {
+                    $fn( $( $arg ),* )
+                }
             }
         }
     };
 }
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! unsafe_fn_internal_build_tuple_tree {
-    // Construct the tuple_tree. Recursive:
-    ( $first:expr, $($rest:expr),+ ) => {
-        (
-            $first, $crate::unsafe_fn_internal_build_tuple_tree!{ $($rest),+ }
-        )
-    };
-    ( $last:expr) => {
-        ($last,)
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! unsafe_fn_internal_build_accessors_and_call {
-    // Access tuple_tree parts and get ready to call the function:
-    ( $fn:expr, $tuple_tree:ident,
-     ( $_first_arg:expr, $($other_arg:expr),+ ),
-     $( ( $($accessor_part:tt),+
-        )
-     ),*
-    ) => {
-        $crate::unsafe_fn_internal_build_accessors_and_call!{
-            $fn, $tuple_tree, ( $($other_arg),+ ),
-            // Insert a new accessor to front (left): 0.
-            (0),
-            $(  // Prepend 1 to each supplied/existing accessor
-                 ( 1, $($accessor_part),+ )
-            ),*
-        }
-    };
-    // All accessors are ready, so call the function:
-    ( $fn:expr, $tuple_tree:ident,
-      ( $_last_or_only_arg:expr ),
-      $( ( $($accessor_part:tt),+
-         )
-      ),*
-    ) => {
-        #[allow(unsafe_code)]
-        unsafe {
-            $fn( $(
-                    $crate::unsafe_fn_internal_access_tuple_tree_field!{ $tuple_tree, $($accessor_part),+ }
-                ),*
-            )
-        }
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-/// INTERNAL. Do NOT use directly - subject to change.
-///
-/// Expand an accessor group/list to access a field in the tuple_tree.
-macro_rules! unsafe_fn_internal_access_tuple_tree_field {
-    ( $tuple_tree:ident, $($accessor_part:tt),* ) => {
-        $tuple_tree $(. $accessor_part )*
-    };
-}
-//-------------
 
 /// Invoke an `unsafe` method. Like [unsafe_fn], but
 /// - This accepts a receiver `&self`, `&mut self` and `self`. TODO Box/Rc/Arc, dyn?
@@ -243,90 +169,17 @@ macro_rules! unsafe_fn_internal_access_tuple_tree_field {
 ///   calls anyways), but only an identifier.
 #[macro_export]
 macro_rules! unsafe_method {
-    ($self:expr, $fn:ident $(, $arg:expr)+ ) => {
+    ($self:expr, $fn:ident $(, $arg:expr)* ) => {
         // Enclosed in a block, so that the result can be used as a value in an outer expression
         // without upsetting operator precedence.
         {
             if false {
-                // Receiver has to be mutable, so that this also works for methods that take &mut
-                // self.
-                let (tuple_tree, mut receiver) = (
-                    $crate::unsafe_fn_internal_build_tuple_tree!{ $($arg),+ },
-                    $self
-                );
-                // Assign the result, in case the method is `#[must_use]`
-                let _ = $crate::unsafe_method_internal! {
-                    receiver,
-                    $fn,
-                    tuple_tree,
-                    ( $( $arg ),* ),
-                    (0)
-                };
+                let _ = $self;
+                $( let _ = $arg; )*
                 unreachable!()
             } else {
+                #[allow(unsafe_code)]
                 unsafe { $self. $fn ( $( $arg ),* ) }
-            }
-        }
-    };
-
-    ($self:expr, $fn:ident ) => {
-        // Enclosed in a block, so that the result can be used as a value in an outer expression
-        // without upsetting operator precedence.
-        {
-            if false {
-                let mut receiver = $self;
-                // Assign the result, in case the method is `#[must_use]`
-                let _ = {
-                    #[allow(unsafe_code)]
-                    unsafe {
-                        receiver. $fn()
-                    }
-                };
-                unreachable!()
-            } else {
-                $self. $fn ()
-            }
-        }
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! unsafe_method_internal {
-    // Access tuple_tree parts and get ready to call the method:
-    ( $self:expr, $fn:ident, $tuple_tree:ident,
-     ( $_first_arg:expr, $($other_arg:expr),+ ),
-     $( ( $($accessor_part:tt),+
-        )
-     ),*
-    ) => {
-        $crate::unsafe_method_internal!{
-            $self, $fn, $tuple_tree, ( $($other_arg),+ ),
-            // Insert a new accessor to front (left): 0.
-            (0),
-            $(  // Prepend 1 to each supplied/existing accessor
-                 ( 1, $($accessor_part),+ )
-            ),*
-        }
-    };
-    // All accessors are ready. $self was already evaluated (outside of unsafe {...}). So call the
-    // function:
-    ( $self:expr, $fn:ident, $tuple_tree:ident,
-      ( $_last_or_only_arg:expr ),
-      $( ( $($accessor_part:tt),+
-         )
-      ),*
-    ) => {
-        // Extra block needed, in case the result is assigned to a variable. Otherwise surprise:
-        // "attributes on expressions are experimental"
-        // https://github.com/rust-lang/rust/issues/15701
-        {
-            #[allow(unsafe_code)]
-            unsafe {
-                $self. $fn( $(
-                        $crate::unsafe_fn_internal_access_tuple_tree_field!{ $tuple_tree, $($accessor_part),+ }
-                    ),*
-                )
             }
         }
     };
