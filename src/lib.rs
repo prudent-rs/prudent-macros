@@ -164,12 +164,10 @@ macro_rules! unsafe_static_set {
     ($static:path, ( $( $suffix:tt )* ) $val:expr) => {{
         if false {
             // Pretend to copy the variable, even if it's not Copy
-            //let var = 
-            
+            //let var =
         } else {
-
         }
-    }}
+    }};
 }
 
 /// Deref a pointer (either `const` or `mut`) and yield a read-only reference.
