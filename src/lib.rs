@@ -72,11 +72,22 @@ extern crate alloc;
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_fn/some_args/arg.rs")]
 /// ```
+/// ```
+/// # use prudent::unsafe_fn;
+/// unsafe fn return_array() -> [bool; 1] {
+///     [true]
+/// }
+/// 
+/// let _b = unsafe_fn!( return_array)[0];
+/// ```
 #[macro_export]
 macro_rules! unsafe_fn {
     ( $fn:expr $(, $arg:expr)* ) => {
         // Enclosed in a block, so that the result can be used as a value in an outer expression.
-        {
+        //
+        // @TODO here and elsewhere - test that this {...} enclosing works with array access suffix
+        // [usize_idx]. Otherwise test if (...) would work instead.
+        (
             if false {
                 let _ = $fn;
                 $( let _ = $arg; )*
@@ -87,7 +98,7 @@ macro_rules! unsafe_fn {
                     $fn( $( $arg ),* )
                 }
             }
-        }
+        )
     };
 }
 // Same `compile_fail` tests as listed above for `unsafe_fn`, but here we validate the error
@@ -147,9 +158,50 @@ macro_rules! unsafe_method {
 ///
 /// We do **not** have a similar macro to get a value of a `static mut`. For that, simply enclose it
 /// in `unsafe{...}`.
+///
+/// TODO:
+/// 
+/// NOT for `static` variables (or their fields/components) of `union` types.
+/// ```
+/// {
+///     static mut S: (bool,) = (true,);
+///
+///     let mptr = &raw mut S;
+///     unsafe { *mptr = (false,); }
+/// 
+///     let _mref = unsafe {&mut *mptr};
+///     
+///     // The following IS accepted:
+///     //
+///     //{unsafe {&mut *mptr}}.0 = true;
+///     //
+///     // BUT, because the outer curly brackets {...} are **refused** just left of
+///     // [index_here] when indexing arrays (see below), we use oval parenthesis (...)
+///     // which work for both: the tuple access .usize_literal and for array access
+///     // [usize_expression].
+/// }
+/// {
+///     static mut ARR: [bool; 1] = [true];
+///     let mptr = &raw mut ARR;
+///     unsafe { *mptr = [false]; }
+/// 
+///     let _mref = unsafe {&mut *mptr};
+///     *_mref = [false];
+///     _mref[ 0 ] = true;
+///     
+///     // Read accesss OK:
+///     let _b: bool = { unsafe {&mut *mptr} }[ 0 ];
+///     // Mut access - bad: The following refused:
+///     //
+///     //{ unsafe {&mut *mptr} }[ 0 ] = true;
+///     //
+///     // Have to use oval parenthesis:
+///     ( unsafe {&mut *mptr} )[ 0 ] = true;
+/// }
+/// ```
 #[macro_export]
 macro_rules! unsafe_static_set {
-    ($static:expr, $val:expr) => {{
+    ($static:path, $val:expr) => {{
         if false {
             let _ = $val;
             unreachable!()
@@ -160,11 +212,18 @@ macro_rules! unsafe_static_set {
             }
         }
     }};
-    // @TODO
-    ($static:path, ( $( $suffix:tt )* ) $val:expr) => {{
+    // @TODO implement + rename, so it's for union fields, too:
+    //
+    // @TODO similar to read union fields
+    ($static:ident { $( $suffix:tt )* } $val:expr) => {{
+        }
+    };
+    ($static:path { $( $suffix:tt )* } $val:expr) => {{
         if false {
-            // Pretend to copy the variable, even if it's not Copy
-            //let var =
+            
+            let mptr =  &raw mut $static;
+            let mref = unsafe {&mut *mptr};
+            unreachable!()
         } else {
         }
     }};
