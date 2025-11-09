@@ -145,6 +145,7 @@ pub const _: () = {};
 
 /// NOT a part of public API. Pretend to get a mutable reference from a shared reference. For
 /// internal/generated compile-time checks only.
+#[doc(hidden)]
 pub const fn shared_to_mut<T>(_: &T) -> &mut T {
     unreachable!()
 }
@@ -197,6 +198,8 @@ macro_rules! unsafe_method {
             }
         }
     };
+    (#allow_unsafe $self:expr, $fn:ident $(, $arg:expr)* ) => {
+    }
 }
 
 /// ```compile_fail,E0133
