@@ -153,6 +153,12 @@ pub const fn shared_to_mut<T>(_: &T) -> &mut T {
 /// - This treats `self` as if it were evaluated **outside** the `unsafe {...}` block.
 /// - $fn can **NOT** be an expression or a qualified path (which doesn't work in standard methods
 ///   calls anyways), but only an identifier.
+///
+/// Do NOT use parameters/input parts matched by
+/// - `$expect_unsafe_empty_indicator` or
+/// - `$allow_unsafe_empty_indicator`
+///
+/// as they are internal.
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_method/some_args/arg.rs")]
 /// ```
@@ -161,7 +167,34 @@ pub const fn shared_to_mut<T>(_: &T) -> &mut T {
 /// ```
 #[macro_export]
 macro_rules! unsafe_method {
-    ($self:expr, $fn:ident $(, $arg:expr)* ) => {
+    (
+        $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator:tt  } )? )?
+        $self:expr, $fn:ident $(, $arg:expr )*
+     ) => {
+        ::prudent::unsafe_method_internal!(
+            $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator  } )? )?
+            $self, $fn $(, $arg )*
+        )
+     };
+    (
+        $( ~expect_unsafe $( { $expect_unsafe_empty_indicator:tt } )? )?
+        $self:expr, $fn:ident $(, $arg:expr )*
+     ) => {
+        ::prudent::unsafe_method_internal!(
+            $( ~expect_unsafe  $( { $expect_unsafe_empty_indicator  } )? )?
+            $self, $fn $(, $arg )*
+        )
+     };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! unsafe_method_internal {
+    (
+        $( ~expect_unsafe $( { $expect_unsafe_empty_indicator:tt } )? )?
+        $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator:tt  } )? )?
+        $self:expr, $fn:ident $(, $arg:expr )*
+     ) => {
         // See unsafe_fn for why here we enclose in (...) and not in {...}.
         (
             if false {
@@ -173,9 +206,22 @@ macro_rules! unsafe_method {
                     //
                     // We **cannot** move/take/assign $self by value, in case it's a non-Copy
                     // **static** variable.
-                    //
-                    // @TODO If NOT #allow_unsafe, inject: #[forbid(unsafe_code)]
-                    let rref = &( $self );
+                    let rref = {
+                        #[rustfmt::skip]
+                        // @TODO simplify once https://github.com/rust-lang/rust/issues/15701
+                        // (attributes on expressions)
+                        #[deny(unsafe_code)]
+                        $(
+                            $( { $allow_unsafe_empty_indicator } )?
+                            #[allow(unsafe_code)]
+                        )?
+                        $(
+                            $( { $expect_unsafe_empty_indicator } )?
+                            #[expect(unsafe_code)]
+                        )?
+                        let rref = &( $self );
+                        rref
+                    };
                     //
                     let mref = ::prudent::shared_to_mut(rref);
                     let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
@@ -204,9 +250,6 @@ macro_rules! unsafe_method {
             }
         )
     };
-    //@TODO
-    (#allow_unsafe $self:expr, $fn:ident $(, $arg:expr)* ) => {
-    }
 }
 
 /// ```compile_fail,E0133
