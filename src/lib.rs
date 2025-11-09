@@ -167,12 +167,21 @@ macro_rules! unsafe_method {
         // without upsetting operator precedence.
         {
             if false {
-                // We **cannot** take $self by value, in case it's a non-Copy static variable.
-                let rref = &( $self );
-                let mref = ::prudent::shared_to_mut(rref);
-                let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
-                let _ = owned_receiver. $fn( $( $arg ),* );
-
+                if false {
+                    // This block makes an instance/owned value of the same type as $self. The
+                    // purpose is then to invoke the method inside unsafe {...}, BUT without
+                    // evaluating the given $self expression inside that unsafe {...} block, so that
+                    // we isolate/catch any unsafe code in $self.
+                    //
+                    // We **cannot** move/take/assign $self by value, in case it's a non-Copy
+                    // **static** variable.
+                    let rref = &( $self );
+                    let mref = ::prudent::shared_to_mut(rref);
+                    let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
+                    let _ = unsafe { owned_receiver. $fn( $( $arg ),* ) };
+                } else {
+                    $( let _ = $arg; )*
+                }
                 unreachable!()
             } else {
                 #[allow(unsafe_code)]
