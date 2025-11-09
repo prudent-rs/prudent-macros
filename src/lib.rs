@@ -115,6 +115,7 @@ macro_rules! unsafe_fn {
         )
     };
 }
+
 // Same `compile_fail` tests as listed above for `unsafe_fn`, but here we validate the error
 // numbers.
 //
@@ -122,6 +123,8 @@ macro_rules! unsafe_fn {
 // - `cargo +stable test` nor
 // - RUSTDOCFLAGS="..." cargo +nightly doc ...
 //
+// Even though the following constant is "pub", it will **not** be a part of the public API, neither
+// a part of the documentation - it's used for doctest only.
 /// ```compile_fail,E0133
 #[doc = include_str!("../violations_coverage/unsafe_fn/zero_args/fn_expression.rs")]
 /// ```
@@ -140,6 +143,12 @@ pub const _: () = {};
 #[cfg(doctest)]
 pub const _: () = {};
 
+/// NOT a part of public API. Pretend to get a mutable reference from a shared reference. For
+/// internal/generated compile-time checks only.
+pub const fn shared_to_mut<T>(_: &T) -> &mut T {
+    unreachable!()
+}
+
 /// Invoke an `unsafe` method. Like [unsafe_fn], but
 /// - This accepts a receiver `&self`, `&mut self` and `self`. TODO Box/Rc/Arc, dyn?
 /// - This treats `self` as if it were evaluated **outside** the `unsafe {...}` block.
@@ -148,6 +157,9 @@ pub const _: () = {};
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_method/some_args/arg.rs")]
 /// ```
+/// ```compile_fail
+#[doc = include_str!("../violations_coverage/unsafe_method/some_args/self.rs")]
+/// ```
 #[macro_export]
 macro_rules! unsafe_method {
     ($self:expr, $fn:ident $(, $arg:expr)* ) => {
@@ -155,8 +167,12 @@ macro_rules! unsafe_method {
         // without upsetting operator precedence.
         {
             if false {
-                let _ = $self;
-                $( let _ = $arg; )*
+                // We **cannot** take $self by value, in case it's a non-Copy static variable.
+                let rref = &( $self );
+                let mref = ::prudent::shared_to_mut(rref);
+                let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
+                let _ = owned_receiver. $fn( $( $arg ),* );
+
                 unreachable!()
             } else {
                 #[allow(unsafe_code)]
@@ -173,8 +189,15 @@ macro_rules! unsafe_method {
         }
     };
 }
+
 /// ```compile_fail,E0133
 #[doc = include_str!("../violations_coverage/unsafe_method/some_args/arg.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/some_args/self.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
