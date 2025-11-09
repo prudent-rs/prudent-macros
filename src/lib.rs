@@ -198,6 +198,7 @@ macro_rules! unsafe_method {
             }
         }
     };
+    //@TODO
     (#allow_unsafe $self:expr, $fn:ident $(, $arg:expr)* ) => {
     }
 }
