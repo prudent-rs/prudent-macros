@@ -78,7 +78,6 @@ extern crate alloc;
 #[doc = include_str!("../violations_coverage/unsafe_fn/some_args/arg.rs")]
 /// ```
 /// ```
-/// # // @TODO
 /// # use prudent::unsafe_fn;
 /// unsafe fn return_array() -> [bool; 1] {
 ///     [true]
@@ -86,10 +85,11 @@ extern crate alloc;
 ///
 /// let _b = unsafe_fn!( return_array)[0];
 /// ```
-/// ```no_run
+/// ```
 /// # use prudent::unsafe_fn;
 /// unsafe fn return_mut_ref_array() -> &'static mut [bool; 1] {
-///     unreachable!()
+///     let boxed = Box::new([true]);
+///      Box::leak(boxed)
 /// }
 ///
 /// unsafe_fn!( return_mut_ref_array)[0] = true;
@@ -107,7 +107,7 @@ macro_rules! unsafe_fn {
             } else {
                 #[allow(unsafe_code)]
                 unsafe {
-                    $fn( $( $arg ),* )
+                    ( $fn )( $( $arg ),* )
                 }
             }
         )
@@ -199,12 +199,15 @@ macro_rules! unsafe_method_internal {
         (
             if false {
                 if false {
-                    // This block makes an instance/owned value of the same type as $self. The
-                    // purpose is then to invoke the method inside unsafe {...}, BUT without
-                    // evaluating the given $self expression inside that unsafe {...} block, so that
-                    // we isolate/catch any unsafe code in $self.
+                    // This block "makes" an instance/owned value of the same type as $self. (Of
+                    // course, the instance is invalid - this is for compile-time checks only, hence
+                    // `if false {...}`.)
                     //
-                    // We **cannot** move/take/assign $self by value, in case it's a non-Copy
+                    // Then we simulate invocation of the given method inside `unsafe {...}``, BUT
+                    // without evaluating the given $self expression inside that same `unsafe
+                    // {...}`` block, so that we isolate/catch any `unsafe`` code in $self.
+                    //
+                    // We **cannot** just move/take/assign $self by value, in case it's a non-Copy
                     // **static** variable.
                     let rref = {
                         #[rustfmt::skip]
@@ -225,6 +228,8 @@ macro_rules! unsafe_method_internal {
                     //
                     let mref = ::prudent::shared_to_mut(rref);
                     let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
+                    // @TODO
+                    //
                     // Detect code where unsafe_fn! or unsafe_method! is not needed at all. That is,
                     // where a function/method used to be `unsafe`, but it stopped being so.
                     //
@@ -232,7 +237,7 @@ macro_rules! unsafe_method_internal {
                     //
                     // 1. store args and then inject them here, instead of $arg:
                     //
-                    // 2. #[forbid(unused_unsafe)]
+                    // 2. #[deny(unused_unsafe)]
                     let _ = unsafe { owned_receiver. $fn( $( $arg ),* ) };
                 } else {
                     $( let _ = $arg; )*
@@ -240,12 +245,17 @@ macro_rules! unsafe_method_internal {
                 unreachable!()
             } else {
                 #[allow(unsafe_code)]
-                // If $self includes `unsafe {...}`, but no #allow_unsafe, that would trigger
-                // "unused_unsafe".
-                //
-                // @TODO If NOT #allow_unsafe, inject #[forbid(unused_unsafe)]. Otherwise inject
-                // #[expect(unused_unsafe)].
-                #[allow(unused_unsafe)]
+                // If $self includes `unsafe {...}`, but no ~allow_unsafe or ~expect_unsafe, that
+                // would trigger "unused_unsafe". Let's notify the user:
+                #[deny(unused_unsafe)]
+                $(
+                    $( { $allow_unsafe_empty_indicator } )?
+                    #[allow(unused_unsafe)]
+                )?
+                $(
+                    $( { $expect_unsafe_empty_indicator } )?
+                    #[expect(unused_unsafe)]
+                )?
                 unsafe { $self. $fn ( $( $arg ),* ) }
             }
         )
