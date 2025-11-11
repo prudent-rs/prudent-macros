@@ -69,13 +69,15 @@ extern crate alloc;
 ///
 /// Zero arguments. The given expression (which evaluates to the function to be called) is `unsafe.`
 /// ```compile_fail
-#[doc = include_str!("../violations_coverage/unsafe_fn/zero_args/fn_expression.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_zero_args.rs")]
 /// ```
+/// Some arguments. The given expression (which evaluates to the function to be called) is `unsafe.`
 /// ```compile_fail
-#[doc = include_str!("../violations_coverage/unsafe_fn/some_args/fn_expression.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_some_args.rs")]
 /// ```
+/// A passed parameter (expression that evaluates to a value passed to the target `unsafe`` function as an argument) itself is `unsafe.`
 /// ```compile_fail
-#[doc = include_str!("../violations_coverage/unsafe_fn/some_args/arg.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/arg.rs")]
 /// ```
 /// ```
 /// # use prudent::unsafe_fn;
@@ -159,19 +161,19 @@ macro_rules! unsafe_fn {
 // Even though the following constant is "pub", it will **not** be a part of the public API, neither
 // a part of the documentation - it's used for doctest only.
 /// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_fn/zero_args/fn_expression.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_zero_args.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
 /// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_fn/some_args/fn_expression.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_some_args.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
 /// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_fn/some_args/arg.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/arg.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
@@ -258,10 +260,13 @@ pub const fn shared_to_mut<T>(_: &T) -> &mut T {
 ///
 /// as they are internal.
 /// ```compile_fail
-#[doc = include_str!("../violations_coverage/unsafe_method/some_args/arg.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
 /// ```
 /// ```compile_fail
-#[doc = include_str!("../violations_coverage/unsafe_method/some_args/self.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
+/// ```
+/// ```compile_fail
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
 /// ```
 #[macro_export]
 macro_rules! unsafe_method {
@@ -286,13 +291,19 @@ macro_rules! unsafe_method {
 }
 
 /// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/some_args/arg.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
 /// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/some_args/self.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
