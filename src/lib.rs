@@ -241,6 +241,43 @@ pub mod expecting_unsafe_fn {
                                                 {
                                                     unreachable!()
                                                 }
+                                                /// Twelve arguments.
+                                                #[allow(clippy::module_inception)]
+                                                pub mod arg {
+                                                    /// Used by `unsafe_fn`.
+                                                    #[allow(clippy::too_many_arguments)]
+                                                    pub unsafe fn fun<
+                                                        A1,
+                                                        A2,
+                                                        A3,
+                                                        A4,
+                                                        A5,
+                                                        A6,
+                                                        A7,
+                                                        A8,
+                                                        A9,
+                                                        A10,
+                                                        A11,
+                                                        A12,
+                                                        R,
+                                                    >(
+                                                        _: A1,
+                                                        _: A2,
+                                                        _: A3,
+                                                        _: A4,
+                                                        _: A5,
+                                                        _: A6,
+                                                        _: A7,
+                                                        _: A8,
+                                                        _: A9,
+                                                        _: A10,
+                                                        _: A11,
+                                                        _: A12,
+                                                    ) -> R
+                                                    {
+                                                        unreachable!()
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -327,10 +364,25 @@ macro_rules! expecting_unsafe_fn_path {
 /// Use the result of `unsafe_fn!` immediately as a mutable array/slice (assign/modify its slot(s)).
 /// ```
 /// # use prudent::unsafe_fn;
-/// unsafe fn return_mut_ref_array() -> &'static mut [bool; 1] { let boxed = Box::new([true]);
-///     Box::leak(boxed) }
+/// // NOT running under MIRI, because of the intentional leak.
+/// if !cfg!(miri) {
+///     unsafe fn return_mut_ref_array() -> &'static mut [bool; 1] {
+///         let boxed = Box::new([true]);
+///         Box::leak(boxed)
+///     }
 ///
-/// unsafe_fn!( return_mut_ref_array)[0] = true;
+///     unsafe_fn!( return_mut_ref_array)[0] = true;
+/// }
+/// ```
+/// The same, but without a leak:
+/// ```
+/// # use prudent::unsafe_fn;
+/// unsafe fn return_same_mut_ref<T>(mref: &mut T) -> &mut T {
+///    mref
+/// }
+///
+/// let mut marray = [true];
+/// unsafe_fn!( return_same_mut_ref, &mut marray )[0] = true;
 /// ```
 /// TODO docs about tuple tree
 #[macro_export]
