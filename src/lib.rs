@@ -174,6 +174,75 @@ pub mod expecting_unsafe_fn {
                                         ) -> R {
                                             unreachable!()
                                         }
+
+                                        /// Ten arguments.
+                                        #[allow(clippy::module_inception)]
+                                        pub mod arg {
+                                            /// Used by `unsafe_fn`.
+                                            #[allow(clippy::too_many_arguments)]
+                                            pub unsafe fn fun<
+                                                A1,
+                                                A2,
+                                                A3,
+                                                A4,
+                                                A5,
+                                                A6,
+                                                A7,
+                                                A8,
+                                                A9,
+                                                A10,
+                                                R,
+                                            >(
+                                                _: A1,
+                                                _: A2,
+                                                _: A3,
+                                                _: A4,
+                                                _: A5,
+                                                _: A6,
+                                                _: A7,
+                                                _: A8,
+                                                _: A9,
+                                                _: A10,
+                                            ) -> R {
+                                                unreachable!()
+                                            }
+
+                                            /// Eleven arguments.
+                                            #[allow(clippy::module_inception)]
+                                            pub mod arg {
+                                                /// Used by `unsafe_fn`.
+                                                #[allow(clippy::too_many_arguments)]
+                                                pub unsafe fn fun<
+                                                    A1,
+                                                    A2,
+                                                    A3,
+                                                    A4,
+                                                    A5,
+                                                    A6,
+                                                    A7,
+                                                    A8,
+                                                    A9,
+                                                    A10,
+                                                    A11,
+                                                    R,
+                                                >(
+                                                    _: A1,
+                                                    _: A2,
+                                                    _: A3,
+                                                    _: A4,
+                                                    _: A5,
+                                                    _: A6,
+                                                    _: A7,
+                                                    _: A8,
+                                                    _: A9,
+                                                    _: A10,
+                                                    _: A11,
+                                                ) -> R
+                                                {
+                                                    unreachable!()
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -210,7 +279,7 @@ macro_rules! expecting_unsafe_fn_path {
 //   - macros inject code.
 //
 /// Invoke an `unsafe` function, but isolate `unsafe {...}` only for the function invocation itself.
-/// - `If $fn`, that is, the function itself, is NOT given as an identifier/qualified path, but it's
+/// - If `$fn`, that is, the function itself, is NOT given as an identifier/qualified path, but it's
 ///   given as an expression, then this expression is treated as if evaluated **outside** `unsafe
 ///   {...}`.
 /// - Any arguments passed in as expressions are treated as if evaluated **outside** `unsafe {...}`.
@@ -233,7 +302,7 @@ macro_rules! expecting_unsafe_fn_path {
 ///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_some_args.rs")]
 /// ```
-/// A passed parameter (expression that evaluates to a value passed to the target `unsafe`` function as an argument) itself is `unsafe.`
+/// A passed parameter (expression that evaluates to a value passed to the target `unsafe` function as an argument) itself is `unsafe.`
 /// ```compile_fail
 ///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/arg.rs")]
