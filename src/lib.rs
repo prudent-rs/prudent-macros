@@ -53,6 +53,7 @@ extern crate alloc;
 ///
 /// Internal - NOT a part of public API.
 #[doc(hidden)]
+#[allow(clippy::module_inception)]
 pub mod expecting_unsafe_fn {
     /// For casting/ensuring that a user-provided function is unsafe. Used by `unsafe_fn`.
     pub unsafe fn fun<R>() -> R {
@@ -66,27 +67,34 @@ pub mod expecting_unsafe_fn {
         }
 
         /// Two arguments.
+        #[allow(clippy::module_inception)]
         pub mod arg {
+            #[allow(clippy::module_inception)]
             /// Used by `unsafe_fn`.
             pub unsafe fn fun<A1, A2, R>(_: A1, _: A2) -> R {
                 unreachable!()
             }
 
             /// Three arguments.
+            #[allow(clippy::module_inception)]
             pub mod arg {
+                #[allow(clippy::module_inception)]
                 /// Used by `unsafe_fn`.
                 pub unsafe fn fun<A1, A2, A3, R>(_: A1, _: A2, _: A3) -> R {
                     unreachable!()
                 }
 
                 /// Four arguments.
+                #[allow(clippy::module_inception)]
                 pub mod arg {
+                    #[allow(clippy::module_inception)]
                     /// Used by `unsafe_fn`.
                     pub unsafe fn fun<A1, A2, A3, A4, R>(_: A1, _: A2, _: A3, _: A4) -> R {
                         unreachable!()
                     }
 
                     /// Five arguments.
+                    #[allow(clippy::module_inception)]
                     pub mod arg {
                         /// Used by `unsafe_fn`.
                         pub unsafe fn fun<A1, A2, A3, A4, A5, R>(
@@ -97,6 +105,78 @@ pub mod expecting_unsafe_fn {
                             _: A5,
                         ) -> R {
                             unreachable!()
+                        }
+
+                        /// Six arguments.
+                        #[allow(clippy::module_inception)]
+                        pub mod arg {
+                            /// Used by `unsafe_fn`.
+                            pub unsafe fn fun<A1, A2, A3, A4, A5, A6, R>(
+                                _: A1,
+                                _: A2,
+                                _: A3,
+                                _: A4,
+                                _: A5,
+                                _: A6,
+                            ) -> R {
+                                unreachable!()
+                            }
+
+                            /// Seven arguments.
+                            #[allow(clippy::module_inception)]
+                            pub mod arg {
+                                /// Used by `unsafe_fn`.
+                                pub unsafe fn fun<A1, A2, A3, A4, A5, A6, A7, R>(
+                                    _: A1,
+                                    _: A2,
+                                    _: A3,
+                                    _: A4,
+                                    _: A5,
+                                    _: A6,
+                                    _: A7,
+                                ) -> R {
+                                    unreachable!()
+                                }
+
+                                /// Eight arguments.
+                                #[allow(clippy::module_inception)]
+                                pub mod arg {
+                                    /// Used by `unsafe_fn`.
+                                    #[allow(clippy::too_many_arguments)]
+                                    pub unsafe fn fun<A1, A2, A3, A4, A5, A6, A7, A8, R>(
+                                        _: A1,
+                                        _: A2,
+                                        _: A3,
+                                        _: A4,
+                                        _: A5,
+                                        _: A6,
+                                        _: A7,
+                                        _: A8,
+                                    ) -> R {
+                                        unreachable!()
+                                    }
+
+                                    /// Nine arguments.
+                                    #[allow(clippy::module_inception)]
+                                    pub mod arg {
+                                        /// Used by `unsafe_fn`.
+                                        #[allow(clippy::too_many_arguments)]
+                                        pub unsafe fn fun<A1, A2, A3, A4, A5, A6, A7, A8, A9, R>(
+                                            _: A1,
+                                            _: A2,
+                                            _: A3,
+                                            _: A4,
+                                            _: A5,
+                                            _: A6,
+                                            _: A7,
+                                            _: A8,
+                                            _: A9,
+                                        ) -> R {
+                                            unreachable!()
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -122,9 +202,6 @@ macro_rules! expecting_unsafe_fn_path {
         $( $path_part )+ ::arg::fun
     };
 }
-/*pub fn fff() {
-    //let _ = expecting_unsafe_fn :: fun;
-}*/
 
 // Implementation notes ARE a part of the documentation:
 // - Otherwise it's a pain to edit them.
@@ -142,28 +219,33 @@ macro_rules! expecting_unsafe_fn_path {
 /// any). If there was such a pair, it could be confused for a tuple. It would also be less readable
 /// when some parameters were tuples/complex expressions.
 ///
-/// This does NOT accept closures, since, (as of Rust 1.91.0) closures cannot be `unsafe`.
+/// This does NOT accept closures, since, closures cannot be `unsafe`.
 ///
 /// # Possible violations
 ///
 /// Zero arguments. The given expression (which evaluates to the function to be called) is `unsafe.`
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_zero_args.rs")]
 /// ```
 /// Some arguments. The given expression (which evaluates to the function to be called) is `unsafe.`
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_some_args.rs")]
 /// ```
 /// A passed parameter (expression that evaluates to a value passed to the target `unsafe`` function as an argument) itself is `unsafe.`
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/arg.rs")]
 /// ```
 /// The target function is safe, hence no need for `unsafe_fn`. Zero args.
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/fn_unused_unsafe/zero_args.rs")]
 /// ```
 /// The target function is safe, hence no need for `unsafe_fn`. Some args.
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/fn_unused_unsafe/some_args.rs")]
 /// ```
 /// Use the result of `unsafe_fn!` immediately as an array/slice.
@@ -279,24 +361,28 @@ macro_rules! unsafe_fn {
 // Even though the following constant is "pub", it will **not** be a part of the public API, neither
 // a part of the documentation - it's used for doctest only.
 /// ```compile_fail,E0133
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_zero_args.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
 /// ```compile_fail,E0133
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_some_args.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
 /// ```compile_fail,E0133
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/arg.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
 /// ```compile_fail,E0308
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_fn/fn_unused_unsafe/zero_args.rs")]
 /// ```
 #[cfg(doctest)]
@@ -384,12 +470,15 @@ pub const fn shared_to_mut<T>(_: &T) -> &mut T {
 ///
 /// as they are internal.
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
 /// ```
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
 /// ```
 /// ```compile_fail
+///  #![allow(clippy::needless_doctest_main)]
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
 /// ```
 #[macro_export]
