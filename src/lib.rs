@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(any(doc, test)), no_std)]
 #![forbid(unknown_lints)]
-// We can't `#![forbid(dead_code)]`, because we use `#[allow(unused_unsafe)]`. Without that
+// We can't `#![forbid(unused)]`, because our macros issue `#[allow(unused_unsafe)]`. Without that
 // unsafe_method! existed only as multiple specialized macros: unsafe_method_ref!,
 // unsafe_method_mut!... And there were problems with unintended duplicates of Copy `self` when
 // invoking methods with the receiver being &self, that is, a shared reference.
@@ -427,7 +427,6 @@ macro_rules! unsafe_fn {
                     // https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
                     let _ = if false {
                         $crate::expecting_unsafe_fn_path!( $( $arg ),+ )
-                        //unreachable!()
                     } else {
                         fun
                     };
@@ -579,6 +578,25 @@ pub const fn shared_to_mut<T>(_: &T) -> &mut T {
     unreachable!()
 }
 
+/// NOT a part of public API. Ensure that maximum one of `~allow_unsafe` or `~expect_unsafe` is passed to [unsafe_method].
+#[doc(hidden)]
+#[macro_export]
+macro_rules! allow_unsafe_expect_unsafe_is_correct {
+    (
+        ~allow_unsafe  $( { $_allow_unsafe_empty_indicator:tt  } )?
+        ~expect_unsafe $( { $_expect_unsafe_empty_indicator:tt } )?
+    ) => {
+        compile_error!("Do not use *both* ~allow_unsafe and ~expect_unsafe with unsafe_method macro.");
+    };
+    (
+        ~allow_unsafe  $( { $_allow_unsafe_empty_indicator:tt  } )?
+    ) => {};
+    (
+        ~expect_unsafe  $( { $_expect_unsafe_empty_indicator:tt  } )?
+    ) => {};
+    () => {};
+}
+
 /// Invoke an `unsafe` method. For methods that have a receiver parameter (`&self`, `&mut self`,
 /// `self`). For associated functions (implemented for a type but with no receiver) use `unsafe_fn`,
 /// and pass the qualified name of the associated function to it.
@@ -612,51 +630,15 @@ pub const fn shared_to_mut<T>(_: &T) -> &mut T {
 ///
 /// ```compile_fail
 ///  #![allow(clippy::needless_doctest_main)]
-#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
+#[doc = include_str!("../violations_coverage/unsafe_method/fn_unused_unsafe/zero_args.rs")]
+/// ```
+///
+/// ```
+///  #![allow(clippy::needless_doctest_main)]
+//#[doc = include_str!("../violations_coverage/unsafe_method/fn_unused_unsafe/some_args.rs")]
 /// ```
 #[macro_export]
 macro_rules! unsafe_method {
-    (
-        $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator:tt  } )? )?
-        $self:expr, $fn:ident $(, $arg:expr )*
-     ) => {
-        $crate::unsafe_method_internal_check_self_etc!(
-            $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator  } )? )?
-            $self, $fn $(, $arg )*
-        )
-     };
-    (
-        $( ~expect_unsafe $( { $expect_unsafe_empty_indicator:tt } )? )?
-        $self:expr, $fn:ident $(, $arg:expr )*
-     ) => {
-        $crate::unsafe_method_internal_check_self_etc!(
-            $( ~expect_unsafe  $( { $expect_unsafe_empty_indicator  } )? )?
-            $self, $fn $(, $arg )*
-        )
-     };
-}
-
-/// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
-/// ```
-#[cfg(doctest)]
-pub const _: () = {};
-
-/// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
-/// ```
-#[cfg(doctest)]
-pub const _: () = {};
-
-/// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
-/// ```
-#[cfg(doctest)]
-pub const _: () = {};
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! unsafe_method_internal_check_self_etc {
     (
         $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator:tt  } )? )?
         $( ~expect_unsafe $( { $expect_unsafe_empty_indicator:tt } )? )?
@@ -665,6 +647,10 @@ macro_rules! unsafe_method_internal_check_self_etc {
         // See unsafe_fn for why here we enclose in (...) and not in {...}.
         (
             if false {
+                $crate::allow_unsafe_expect_unsafe_is_correct!{
+                    $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator  } )? )?
+                    $( ~expect_unsafe $( { $expect_unsafe_empty_indicator } )? )?
+                }
                 if false {
                     // This block "makes" owned_receiver, an instance/owned value of the same type
                     // as $self. (Of course, the instance is invalid - this is for compile-time
@@ -733,6 +719,24 @@ macro_rules! unsafe_method_internal_check_self_etc {
     }
 }
 
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! unsafe_method_internal_check_args_etc {
@@ -761,7 +765,9 @@ macro_rules! unsafe_method_internal_check_args_etc {
      ) => {({
                 #[allow(unsafe_code)]
                 // Notify if $self includes `unsafe {...}`, but no ~allow_unsafe or ~expect_unsafe:
-                #[deny(unused_unsafe)]
+                //
+                //#[deny(unused_unsafe)]
+                #[forbid(unused_unsafe)]
                 $(
                     $( { $allow_unsafe_empty_indicator } )?
                     #[allow(unused_unsafe)]
@@ -770,7 +776,9 @@ macro_rules! unsafe_method_internal_check_args_etc {
                     $( { $expect_unsafe_empty_indicator } )?
                     #[expect(unused_unsafe)]
                 )?
-                let result = unsafe { $self. $fn () };
+                #[forbid(unused_unsafe)]
+                let result = unsafe { 1+ 2 };
+                //let result = unsafe { $self. $fn () };
                 result
     })};
 }
