@@ -82,6 +82,11 @@
 // Workaround for https://github.com/rust-lang/rust/issues/148599
 #![doc(test(attr(allow(forbidden_lint_groups))))]
 
+// Needed, so that macro_rules! in front_end.rs can refer to this crate, regardless of whether those
+// macros from front_end.rs are accessed as from ::prudent, or loaded with load!() as a module in
+// user crate's namespace.
+extern crate self as prudent;
+
 #[cfg(doc)]
 extern crate alloc;
 
@@ -193,7 +198,7 @@ macro_rules! unsafe_fn {
                     // Ensure that $fn is not safe, but `unsafe`. Using
                     // https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
                     let _ = if false {
-                        $crate::expecting_unsafe_fn_path!( $( $arg ),+ )
+                        ::prudent::expecting_unsafe_fn_path!( $( $arg ),+ )
                     } else {
                         fun
                     };
@@ -220,7 +225,7 @@ macro_rules! unsafe_fn {
                 // Ensure that $fn is not safe, but `unsafe`. Using
                 // https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
                 let _ = if false {
-                    $crate::back_end::expecting_unsafe_fn::fun
+                    ::prudent::back_end::expecting_unsafe_fn::fun
                 } else {
                     fun
                 };
@@ -291,6 +296,7 @@ macro_rules! unsafe_fn_internal_build_tuple_tree {
 
 #[doc(hidden)]
 #[macro_export]
+/// INTERNAL. Do NOT use directly - subject to change.
 macro_rules! unsafe_fn_internal_build_accessors_and_call {
     // Access tuple_tree parts and get ready to call the function:
     ( $fn:expr, $tuple_tree:ident,
@@ -337,27 +343,6 @@ macro_rules! unsafe_fn_internal_access_tuple_tree_field {
     };
 }
 //-------------
-
-/// NOT a part of public API. Ensure that maximum one of `~allow_unsafe` or `~expect_unsafe` is passed to [unsafe_method].
-#[doc(hidden)]
-#[macro_export]
-macro_rules! allow_unsafe_expect_unsafe_is_correct {
-    (
-        ~allow_unsafe  $( { $_allow_unsafe_empty_indicator:tt  } )?
-        ~expect_unsafe $( { $_expect_unsafe_empty_indicator:tt } )?
-    ) => {
-        compile_error!(
-            "Do not use *both* ~allow_unsafe and ~expect_unsafe with unsafe_method macro."
-        );
-    };
-    (
-        ~allow_unsafe  $( { $_allow_unsafe_empty_indicator:tt  } )?
-    ) => {};
-    (
-        ~expect_unsafe  $( { $_expect_unsafe_empty_indicator:tt  } )?
-    ) => {};
-    () => {};
-}
 
 /// Invoke an `unsafe` method. For methods that have a receiver parameter (`&self`, `&mut self`,
 /// `self`). For associated functions (implemented for a type but with no receiver) use `unsafe_fn`,
@@ -409,7 +394,7 @@ macro_rules! unsafe_method {
         // See unsafe_fn for why here we enclose in (...) and not in {...}.
         (
             if false {
-                $crate::allow_unsafe_expect_unsafe_is_correct!{
+                ::prudent::allow_unsafe_expect_unsafe_is_correct!{
                     $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator  } )? )?
                     $( ~expect_unsafe $( { $expect_unsafe_empty_indicator } )? )?
                 }
@@ -443,7 +428,7 @@ macro_rules! unsafe_method {
                         rref
                     };
                     //
-                    let mref = $crate::back_end::shared_to_mut(rref);
+                    let mref = ::prudent::back_end::shared_to_mut(rref);
                     let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
                     // Detect code where unsafe_fn! or unsafe_method! is not needed at all. That is,
                     // where a function/method used to be `unsafe`, but it stopped being so.
@@ -507,6 +492,7 @@ macro_rules! unsafe_method_internal_check_args_etc {
         $( ~allow_unsafe  $( { $allow_unsafe_empty_indicator:tt  } )? )?
         $self:expr, $fn:ident $(, $arg:expr )+
      ) => {({
+                #[deny(unused_unsafe)]
                 let tuple_tree =
                     $crate::unsafe_fn_internal_build_tuple_tree!{ $($arg),+ };
 
@@ -529,7 +515,7 @@ macro_rules! unsafe_method_internal_check_args_etc {
                 // Notify if $self includes `unsafe {...}`, but no ~allow_unsafe or ~expect_unsafe:
                 //
                 //#[deny(unused_unsafe)]
-                #[forbid(unused_unsafe)]
+                #[deny(unused_unsafe)]
                 $(
                     $( { $allow_unsafe_empty_indicator } )?
                     #[allow(unused_unsafe)]
@@ -538,9 +524,8 @@ macro_rules! unsafe_method_internal_check_args_etc {
                     $( { $expect_unsafe_empty_indicator } )?
                     #[expect(unused_unsafe)]
                 )?
-                #[forbid(unused_unsafe)]
-                let result = unsafe { 1+ 2 };
-                //let result = unsafe { $self. $fn () };
+                #[deny(unused_unsafe)]
+                let result = unsafe { $self. $fn () };
                 result
     })};
 }
@@ -739,13 +724,13 @@ macro_rules! unsafe_mut {
 macro_rules! unsafe_val {
     ($ptr:expr) => {{
         let ptr: *const _ = $ptr;
-        $crate::back_end::expect_copy_ptr(ptr);
+        ::prudent::back_end::expect_copy_ptr(ptr);
         unsafe { *ptr }
     }};
     ($ptr:expr, $ptr_type:ty) => {{
         let ptr = $ptr;
         let ptr = ptr as *const $ptr_type;
-        $crate::back_end::expect_copy_ptr(ptr);
+        ::prudent::back_end::expect_copy_ptr(ptr);
         unsafe { *ptr }
     }};
 }
