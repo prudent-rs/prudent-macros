@@ -25,10 +25,10 @@
 //! - if your crate is not published on <crates.io>
 //!
 //! then pass the first parameter, a relative/absolute file path to your local clone/git submodule
-//! copy/other copy of `src_linted/prudent_frontend_macros.rs`. So, instead of `#1` above, have
+//! copy/other copy of `src/linted.rs`. So, instead of `#1` above, have
 //! something like:
 //! ```ignore
-//!    ::prudent::load!("../../prudent/src/front_end.rs");
+//!    ::prudent::load!("../../prudent/src/linted.rs");
 //! ```
 //!
 //! Pass a second parameter, after `->`, if you want the load in a module with name of your choice.
@@ -86,8 +86,8 @@
 // Workaround for https://github.com/rust-lang/rust/issues/148599
 #![doc(test(attr(allow(forbidden_lint_groups))))]
 
-// Needed, so that macro_rules! in front_end.rs can refer to this crate, regardless of whether those
-// macros from front_end.rs are accessed as from ::prudent, or loaded with load!() as a module in
+// Needed, so that macro_rules! in linted.rs can refer to this crate, regardless of whether those
+// macros from linted.rs are accessed as from ::prudent, or loaded with load!() as a module in
 // user crate's namespace.
 //
 //extern crate self as prudent;
@@ -99,10 +99,24 @@ extern crate alloc;
 //#[cfg(doctest)]
 //compile_error!("NOT DOCTEST!");
 
-pub mod back_end;
+pub mod unlinted;
 
-#[doc(hidden)]
-pub mod internal_front_end;
+/// Linted macros.
+pub mod linted;
+
+/// Doctests of linted macros.
+#[cfg(doctest)]
+#[path = "linted_tests.rs"]
+pub mod linted_tests;
 
 /// No need to be public. The only functionality is macros, which are exported even if private.
-mod front_end_loader;
+mod linted_loader;
+
+const _VERIFY_CRATE_NAME: () = {
+    let path = core::module_path!().as_bytes();
+    if !matches!(path, b"prudent") {
+        panic!(
+            "Do NOT rename `prudent` crate. That is not possible because of rust-lang/rust#110613."
+        );
+    }
+};
