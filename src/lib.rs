@@ -100,7 +100,7 @@ pub mod linted;
 /// Doctests of linted macros.
 #[cfg(doctest)]
 #[path = "linted_tests.rs"]
-pub mod linted_tests;
+mod linted_tests;
 
 /// No need to be public. The only functionality is macros, which are exported even if private.
 mod linted_loader;
