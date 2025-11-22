@@ -95,12 +95,13 @@ extern crate alloc;
 pub mod unlinted;
 
 /// Linted macros.
-pub mod linted;
+#[path = "linted.rs"]
+mod linted_untested;
 
-/// Doctests of linted macros.
-#[cfg(doctest)]
+/// Linted macros.
+//#[cfg(doctest)]
 #[path = "linted_tests.rs"]
-mod linted_tests;
+pub mod linted;
 
 /// No need to be public. The only functionality is macros, which are exported even if private.
 mod linted_loader;
