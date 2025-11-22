@@ -32,7 +32,7 @@
 //! ```
 //!
 //! Pass a second parameter, after `->`, if you want the load in a module with name of your choice.
-#![doc = include_str!("../README.md")]
+// #![doc = include_str!("../README.md")]
 #![cfg_attr(not(any(doc, test)), no_std)]
 #![forbid(unknown_lints)]
 // We can't `#![forbid(unused)]`, because our macros issue `#[allow(unused_unsafe)]`. Without that
@@ -94,6 +94,10 @@
 
 #[cfg(doc)]
 extern crate alloc;
+
+//#[cfg(not(doctest))]
+//#[cfg(doctest)]
+//compile_error!("NOT DOCTEST!");
 
 pub mod back_end;
 
