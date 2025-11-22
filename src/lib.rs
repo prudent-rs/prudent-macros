@@ -1,6 +1,6 @@
 //! To use the crate without lints:
 //! 1. Invoke this macro at the top of your crate (`lib.rs`, or in your binary crates if they don't
-//!    have `lib.rs`). Like this, **with** the leading double colon `::``
+//!    have `lib.rs`). Like this, **with** the leading double colon `::`
 //!    ```
 //!    ::prudent::load!();
 //!    ```
