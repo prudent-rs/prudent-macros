@@ -95,7 +95,7 @@ extern crate alloc;
 pub mod unlinted;
 
 /// Linted macros.
-#[path = "linted.rs"]
+#[path = "linted_internal.rs"]
 mod linted_untested;
 
 #[path = "linted_with_tests.rs"]
