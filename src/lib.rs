@@ -120,18 +120,18 @@ macro_rules! internal_coverage_positive {
     };
 }
 
-pub mod unlinted;
+pub mod backend;
 
 /// Linted macros.
-#[path = "linted_internal.rs"]
-mod linted_untested;
+#[path = "frontend_unlinted.rs"]
+mod frontend_untested;
 
-#[path = "linted_with_tests.rs"]
+#[path = "frontend_with_tests.rs"]
 #[doc(hidden)]
 pub mod linted;
 
 /// No need to be public. The only functionality is macros, which are exported even if private.
-mod linted_loader;
+mod frontend_loader;
 
 const _VERIFY_CRATE_NAME: () = {
     let path = core::module_path!().as_bytes();
