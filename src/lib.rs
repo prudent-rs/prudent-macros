@@ -23,10 +23,14 @@
 //!    use crate::prudent::*;
 //! ```
 //!
-//! Pass a second parameter, after `->`, if you want the load in a module with name of your choice
+//! Pass a second parameter, after `=>`, if you want the loaded module to have name of your choice
 //! (other than `prudent`).
 #![allow(clippy::useless_attribute)]
 #![allow(clippy::needless_doctest_main)]
+//! # Examples (linted)
+#![doc  = internal_coverage_positive!("any: \"linted.rs\"") ]
+//! # Examples (not linted)
+#![doc  = internal_coverage_positive!("") ]
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(any(doc, test)), no_std)]
 #![forbid(unknown_lints)]
@@ -79,18 +83,38 @@
 // Workaround for https://github.com/rust-lang/rust/issues/148599
 #![doc(test(attr(allow(forbidden_lint_groups))))]
 
-// Needed, so that macro_rules! in linted.rs can refer to this crate, regardless of whether those
-// macros from linted.rs are accessed as from ::prudent, or loaded with load!() as a module in
-// user crate's namespace.
-//
-//extern crate self as prudent;
-
 #[cfg(doc)]
 extern crate alloc;
 
-//#[cfg(not(doctest))]
-//#[cfg(doctest)]
-//compile_error!("NOT DOCTEST!");
+#[doc(hidden)]
+#[macro_export]
+macro_rules! internal_coverage_positive {
+    (
+        $load_params:literal
+    ) => {
+        $crate::internal_coverage_positive!(
+            $load_params,
+            "unsafe_fn" -> "../coverage_positive/fn.rs",
+            "unsafe_method > self: shared reference" -> "../coverage_positive/md-shared_ref.rs"
+        )
+    };
+    (
+        $load_params:literal,
+        $( $description:literal -> $file:literal ),*
+    ) => {
+        ::core::concat!(
+        $(
+            $description,
+            "\n```\n",
+            "::prudent::load!(", $load_params, ");\n",
+            ::core::include_str!($file),
+            // just in case the file doesn't end with a new line, inject it anyway:
+            "\n```\n",
+        )*
+        "\n"
+        )
+    };
+}
 
 pub mod unlinted;
 
@@ -99,6 +123,7 @@ pub mod unlinted;
 mod linted_untested;
 
 #[path = "linted_with_tests.rs"]
+#[doc(hidden)]
 pub mod linted;
 
 /// No need to be public. The only functionality is macros, which are exported even if private.
