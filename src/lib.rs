@@ -24,7 +24,11 @@
 //! ```
 //!
 //! Pass a second parameter, after `=>`, if you want the loaded module to have name of your choice
-//! (other than `prudent`).
+//! (other than `prudent`). For example:
+//! ```ignore
+//!    ::prudent::load!("../../prudent/src/linted.rs" => prudentish);
+//!    use crate::prudentish::*;
+//! ```
 #![allow(clippy::useless_attribute)]
 #![allow(clippy::needless_doctest_main)]
 //! # Examples (linted)
@@ -94,8 +98,8 @@ macro_rules! internal_coverage_positive {
     ) => {
         $crate::internal_coverage_positive!(
             $load_params,
-            "unsafe_fn" -> "../coverage_positive/fn.rs",
-            "unsafe_method > self: shared reference" -> "../coverage_positive/md-shared_ref.rs"
+            "# unsafe_fn" -> "../coverage_positive/fn.rs",
+            "# unsafe_method\n## unsafe_method > self: shared reference" -> "../coverage_positive/md-shared_ref.rs"
         )
     };
     (
