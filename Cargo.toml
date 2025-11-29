@@ -22,3 +22,9 @@ homepage = "https://github.com/prudent-rs/prudent"
 
 [lints.rust]
 unexpected_cfgs = { level = "forbid"}
+
+[features]
+# NOT for any builds (not even for debugging). Only for "activating" src/frontend_linted.rs in your
+# rust-analyzer/IDE, so you get better editing.
+internal_use_frontend_linted = []
+#default = ["internal_use_frontend_linted"]

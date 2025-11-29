@@ -122,8 +122,15 @@ macro_rules! internal_coverage_positive {
 
 pub mod backend;
 
+#[cfg(feature = "internal_use_frontend_linted")]
+compile_error!("Use feature internal_use_frontend_linted only for easier editing.");
+
 /// Frontend macros.
+#[cfg(not(feature = "internal_use_frontend_linted"))]
 #[path = "frontend_unlinted.rs"]
+mod frontend_untested;
+#[cfg(feature = "internal_use_frontend_linted")]
+#[path = "frontend_linted.rs"]
 mod frontend_untested;
 
 #[path = "frontend_with_compile_fail_tests.rs"]
