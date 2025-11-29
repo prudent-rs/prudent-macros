@@ -17,22 +17,22 @@
 //! - if your crate is not published on <crates.io>
 //!
 //! then pass the first parameter, a relative/absolute file path to your local clone/git submodule
-//! copy/other copy of `src/linted.rs`. So, instead of `#1` above, have something like:
+//! copy/other copy of `src/frontend_linted.rs`. So, instead of `#1` above, have something like:
 //! ```ignore
-//!    ::prudent::load!("../../prudent/src/linted.rs");
+//!    ::prudent::load!("../../prudent/src/frontend_linted.rs");
 //!    use crate::prudent::*;
 //! ```
 //!
 //! Pass a second parameter, after `=>`, if you want the loaded module to have name of your choice
 //! (other than `prudent`). For example:
 //! ```ignore
-//!    ::prudent::load!("../../prudent/src/linted.rs" => prudentish);
+//!    ::prudent::load!("../../prudent/src/frontend_linted.rs" => prudentish);
 //!    use crate::prudentish::*;
 //! ```
 #![allow(clippy::useless_attribute)]
 #![allow(clippy::needless_doctest_main)]
 //! # Examples (linted)
-#![doc  = internal_coverage_positive!("any: \"linted.rs\"") ]
+#![doc  = internal_coverage_positive!("any: \"frontend_linted.rs\"") ]
 //! # Examples (not linted)
 #![doc  = internal_coverage_positive!("") ]
 #![doc = include_str!("../README.md")]
@@ -122,13 +122,13 @@ macro_rules! internal_coverage_positive {
 
 pub mod backend;
 
-/// Linted macros.
+/// Frontend macros.
 #[path = "frontend_unlinted.rs"]
 mod frontend_untested;
 
 #[path = "frontend_with_tests.rs"]
 #[doc(hidden)]
-pub mod linted;
+pub mod frontend;
 
 /// No need to be public. The only functionality is macros, which are exported even if private.
 mod frontend_loader;
