@@ -44,8 +44,19 @@ macro_rules! unsafe_fn {
                 let (tuple_tree, fun) = ($crate::unsafe_fn_internal_build_tuple_tree!{ $($arg),+ }, $fn);
 
                 if false {
+                    // Detect code where `unsafe_fn!` is not needed at all. Maybe the function used
+                    // to be `unsafe`, but not anymore.
+                    //
                     // Ensure that $fn is not safe, but `unsafe`. Using
                     // https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
+                    //
+                    // We can't just use
+                    // ```
+                    // let _: unsafe fn(_, _,... ) -> _ = fun;
+                    // ```
+                    // (with the appropriate number of _ for arguments), because that would coerce a
+                    // safe function into unsafe, and we would lose the ability to verify that it's
+                    // indeed unsafe!
                     let _ = if false {
                         $crate::expecting_unsafe_fn_path!( $( $arg ),+ )
                     } else {
@@ -181,28 +192,51 @@ macro_rules! unsafe_method {
         // See unsafe_fn for why here we enclose in (...) and not in {...}.
         (
             if false {
-                // "Make" an owned_receiver, an instance/owned value of the same
-                // type as $self. (Of course, the instance is invalid - this is for compile-time
-                // checks only, hence `if false {...}`.)
+                // "Make" an owned_receiver, an instance/owned value of the same type as $self. (Of
+                // course, the instance is invalid - this is for compile-time checks only, hence `if
+                // false {...}`.)
                 //
-                // Then we simulate invocation of the given method inside `unsafe {...}``, BUT
-                // without evaluating the given $self expression inside that same `unsafe
-                // {...}`` block, so that we isolate/catch any `unsafe`` code in $self.
+                // Then we simulate invocation of the given method inside `unsafe {...}`, BUT
+                // without evaluating the given $self expression inside that same `unsafe {...}`
+                // block, so that we isolate/catch any `unsafe` code in $self.
                 //
-                // We **cannot** just move/take/assign $self by value, in case it's a non-Copy
-                // **static** variable. See also comments in
+                // We **cannot** just move/take/assign $self by value, in case it's a non-`Copy`
+                // `static` variable (or a deref of a non-`Copy` raw pointer). See also comments in
                 // unsafe_method_internal_build_accessors_check_args_call.
                 let mref = {
                     let rref = &( $self );
                     $crate::backend::shared_to_mut( rref )
                 };
-                #[allow(unused_mut)]
+                #[allow(unused_mut)] // in case the method takes &mut self.
                 #[allow(invalid_value)] // for &str and other types where zeroed() issues invalid_value warning.
                 let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
+
+                #[cfg(feature="assert_unsafe_methods")]
+                if false {
+                    type OwnedReceiver = impl Sized;
+                    //let _ = move || -> OwnedReceiver { owned_receiver };
+                    let owned_receiver: OwnedReceiver = owned_receiver;
+
+                    // Detect code where `unsafe_method!` is not needed at all. Maybe the method used
+                    // to be `unsafe`, but not anymore.
+                    //
+                    // See unsafe_fn for why we can't just use simple coercion like:
+                    // ```
+                    // let _: unsafe fn(_, _,... ) -> _ = OwnedReceiver::$method;
+                    // ```
+
+                    let _ = OwnedReceiver::$method;
+                    /*let _ = if false {
+                        $crate::expecting_unsafe_fn_path!( first_goes_receiver $(, $arg )* )
+                    } else {
+                        OwnedReceiver::$method
+                    };*/
+                    ::core::unreachable!();
+                };
+                // @TODO double check and remove:
+                //
                 // Detect code where `unsafe_method!` is not needed at all. Maybe the method used
                 // to be `unsafe`, but not anymore.
-                //
-                // @TODO This is the only place where we "need" #[deny(unused_unsafe)]
                 #[deny(unused_unsafe)]
                 let _ = unsafe { owned_receiver. $method( $( $arg ),* ) };
                 ::core::unreachable!()

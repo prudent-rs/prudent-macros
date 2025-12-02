@@ -1,3 +1,18 @@
+// @TODO feature NOT actually needed in the crate itself, only in consumers
+//
+//#![cfg_attr(feature = "assert_unsafe_methods", feature(type_alias_impl_trait))]
+
+// @TODO e-considr:
+//
+//#![doc(test(no_crate_inject))]
+//
+// #![cfg_attr(feature = "assert_unsafe_methods", doc(test(attr = ::prudent::top_header_assert_unsafe_methods!())))]
+//
+//#![doc(test(attr = ::prudent::top_header_assert_unsafe_methods!()))]
+#![cfg_attr(
+    feature = "assert_unsafe_methods",
+    doc(test(attr(feature(type_alias_impl_trait))))
+)]
 #![allow(clippy::useless_attribute)]
 #![allow(clippy::needless_doctest_main)]
 //! # Examples
@@ -18,7 +33,8 @@
 // rustdoc lints: https://doc.rust-lang.org/rustdoc/lints.html
 //
 // rustdoc::missing_doc_code_examples we don't apply here, because it's nightly-only. Instead, we
-// invoke it with `nightly` toolchain from .github/workflows/main.yml.
+// invoke it by specifying it in `RUSTDOCFLAGS` with `nightly` toolchain. See
+// .github/workflows/main.yml.
 //
 // rustdoc::invalid_codeblock_attributes we do NOT warn/deny/forbid here, even though it IS stable.
 // That's because in `compile_fail` doctests we use error numbers, which are UNSTABLE only. But, to
@@ -55,6 +71,21 @@
 
 #[cfg(doc)]
 extern crate alloc;
+
+#[cfg(feature = "assert_unsafe_methods")]
+/// Enable a necessary nightly feature IF prudent is configured to use it.
+#[macro_export]
+macro_rules! top_header_assert_unsafe_methods {
+    () => {
+        "#![feature(type_alias_impl_trait)]"
+    };
+}
+#[cfg(not(feature = "assert_unsafe_methods"))]
+/// Enable a necessary nightly feature IF prudent is configured to use it.
+#[macro_export]
+macro_rules! top_header_assert_unsafe_methods {
+    () => {};
+}
 
 #[doc(hidden)]
 #[macro_export]

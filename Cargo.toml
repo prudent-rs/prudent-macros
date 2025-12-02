@@ -24,4 +24,23 @@ homepage = "https://github.com/prudent-rs/prudent"
 unexpected_cfgs = { level = "forbid"}
 
 [features]
+# UNSTABLE Check that the method actually is unsafe. This requires nightly Rust version until
+# https://github.com/rust-lang/rust/issues/88531 is implemented. Subject to CHANGE.
+#
+# If you enable this
+# - and use `nightly` compiler
+# - either
+#   - have `#![feature(type_alias_impl_trait)]` at the top of your crate (normally your
+#     `src/lib.rs`, `src/main.rs` or `src/bin/*.rs`), or
+#   - use it in rustdocs with injection - TODO check:
+#     ```
+#     // at the top of your crate:
+#     #![doc(test(attr = ::prudent::top_header_assert_unsafe_methods!()))]
+#     ```
+#     - if you enable it conditionally, and if your feature is also called `assert_unsafe_methods`,
+#       have:
+#       ```
+#       #![cfg_attr(feature = "assert_unsafe_methods", doc(test(attr = ::prudent::top_header_assert_unsafe_methods!())))]
+#       ```
+assert_unsafe_methods = []
 #default = []
