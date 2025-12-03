@@ -312,11 +312,90 @@ macro_rules! unsafe_method {
     (
         $self:expr =>@ $method:ident
      ) => {
-        $crate::unsafe_method!(
+        $crate::unsafe_method_check_cfg!(
             $self =>@ $method =>
         )
      };
     (
+        $self:expr =>@ $method:ident => $( $arg:expr ),*
+     ) => {
+        $crate::unsafe_method_check_cfg!(
+            $self =>@ $method => $( $arg ),*
+        )
+    }
+}
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+
+/// ```compile_fail,E0133
+#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
+/// ```
+#[cfg(doctest)]
+pub const _: () = {};
+//----------------------
+
+#[cfg(not(feature = "assert_unsafe_methods"))]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! unsafe_method_check_cfg {
+    (
+        $self:expr =>@ $method:ident => $( $arg:expr ),*
+     ) => {
+        $crate::unsafe_method_assert_unsafe_methods!(
+            {}
+            $self =>@ $method => $( $arg ),*
+        )
+     }
+}
+#[cfg(feature = "assert_unsafe_methods")]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! unsafe_method_check_cfg {
+    (
+        $self:expr =>@ $method:ident => $( $arg:expr ),*
+     ) => {
+        $crate::unsafe_method_assert_unsafe_methods!(
+            {
+                type OwnedReceiver = impl Sized;
+                //let _ = move || -> OwnedReceiver { owned_receiver };
+                let owned_receiver: OwnedReceiver = owned_receiver;
+
+                // Detect code where `unsafe_method!` is not needed at all. Maybe the method used
+                // to be `unsafe`, but not anymore.
+                //
+                // See unsafe_fn for why we can't just use simple coercion like:
+                // ```
+                // let _: unsafe fn(_, _,... ) -> _ = OwnedReceiver::$method;
+                // ```
+
+                let _ = OwnedReceiver::$method;
+                /*let _ = if false {
+                    $crate::expecting_unsafe_fn_path!( first_goes_receiver $(, $arg )* )
+                } else {
+                    OwnedReceiver::$method
+                };*/
+                ::core::unreachable!();
+            }
+            $self =>@ $method => $( $arg ),*
+        )
+     }
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! unsafe_method_assert_unsafe_methods {
+    (
+        { $( $code_assert_unsafe_methods:tt )* }
         $self:expr =>@ $method:ident => $( $arg:expr ),*
      ) => {
         // See unsafe_fn for why here we enclose in (...) and not in {...}.
@@ -341,28 +420,9 @@ macro_rules! unsafe_method {
                 #[allow(invalid_value)] // for &str and other types where zeroed() issues invalid_value warning.
                 let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
 
-                #[cfg(feature="assert_unsafe_methods")]
                 if false {
-                    type OwnedReceiver = impl Sized;
-                    //let _ = move || -> OwnedReceiver { owned_receiver };
-                    let owned_receiver: OwnedReceiver = owned_receiver;
-
-                    // Detect code where `unsafe_method!` is not needed at all. Maybe the method used
-                    // to be `unsafe`, but not anymore.
-                    //
-                    // See unsafe_fn for why we can't just use simple coercion like:
-                    // ```
-                    // let _: unsafe fn(_, _,... ) -> _ = OwnedReceiver::$method;
-                    // ```
-
-                    let _ = OwnedReceiver::$method;
-                    /*let _ = if false {
-                        $crate::expecting_unsafe_fn_path!( first_goes_receiver $(, $arg )* )
-                    } else {
-                        OwnedReceiver::$method
-                    };*/
-                    ::core::unreachable!();
-                };
+                    $( $code_assert_unsafe_methods )*
+                }
                 // @TODO double check and remove:
                 //
                 // Detect code where `unsafe_method!` is not needed at all. Maybe the method used
@@ -376,27 +436,8 @@ macro_rules! unsafe_method {
                 )
             }
         )
-    }
+     }
 }
-
-/// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
-/// ```
-#[cfg(doctest)]
-pub const _: () = {};
-
-/// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
-/// ```
-#[cfg(doctest)]
-pub const _: () = {};
-
-/// ```compile_fail,E0133
-#[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
-/// ```
-#[cfg(doctest)]
-pub const _: () = {};
-//----------------------
 
 #[doc(hidden)]
 #[macro_export]
