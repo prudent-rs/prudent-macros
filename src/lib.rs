@@ -1,5 +1,3 @@
-//! # Examples
-#![doc  = internal_coverage_positive!() ]
 #![doc = include_str!("../README.md")]
 //!
 //! Implementation notes of macros ARE a part of the documentation. Why?
@@ -58,47 +56,6 @@
 
 #[cfg(doc)]
 extern crate alloc;
-
-#[cfg(feature = "assert_unsafe_methods")]
-/// Enable a necessary nightly feature IF prudent is configured to use it.
-#[macro_export]
-macro_rules! top_header_assert_unsafe_methods {
-    () => {
-        "#![feature(type_alias_impl_trait)]"
-    };
-}
-#[cfg(not(feature = "assert_unsafe_methods"))]
-/// Enable a necessary nightly feature IF prudent is configured to use it.
-#[macro_export]
-macro_rules! top_header_assert_unsafe_methods {
-    () => {};
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! internal_coverage_positive {
-    (
-    ) => {
-        $crate::internal_coverage_positive!(
-            "# unsafe_fn" -> "../coverage_positive/fn.rs",
-            "# unsafe_method\n## unsafe_method > self: shared reference" -> "../coverage_positive/md-shared_ref.rs"
-        )
-    };
-    (
-        $( $description:literal -> $file:literal ),*
-    ) => {
-        ::core::concat!(
-        $(
-            $description,
-            "\n```\n",
-            ::core::include_str!($file),
-            // just in case the file doesn't end with a new line, inject it anyway:
-            "\n```\n",
-        )*
-        "\n"
-        )
-    };
-}
 
 pub mod backend;
 
