@@ -310,17 +310,17 @@ macro_rules! unsafe_fn_internal_access_tuple_tree_field {
 #[macro_export]
 macro_rules! unsafe_method {
     (
-        $self:expr =>@ $method:ident
+        $self:expr =>. $method:ident
      ) => {
         $crate::unsafe_method_assert_unsafe_methods!(
-            $self =>@ $method =>
+            $self =>. $method =>
         )
      };
     (
-        $self:expr =>@ $method:ident => $( $arg:expr ),*
+        $self:expr =>. $method:ident => $( $arg:expr ),*
      ) => {
         $crate::unsafe_method_assert_unsafe_methods!(
-            $self =>@ $method => $( $arg ),*
+            $self =>. $method => $( $arg ),*
         )
     }
 }
@@ -388,7 +388,7 @@ macro_rules! code_assert_unsafe_methods {
 #[doc(hidden)]
 macro_rules! unsafe_method_assert_unsafe_methods {
     (
-        $self:expr =>@ $method:ident => $( $arg:expr ),*
+        $self:expr =>. $method:ident => $( $arg:expr ),*
      ) => {
         // See unsafe_fn for why here we enclose in (...) and not in {...}.
         (
