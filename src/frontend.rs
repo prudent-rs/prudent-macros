@@ -646,7 +646,7 @@ macro_rules! unsafe_val {
         $crate::backend::expect_copy_ptr(ptr);
         unsafe { *ptr }
     }};
-    ($ptr:expr, $ptr_type:ty) => {{
+    ($ptr:expr => $ptr_type:ty) => {{
         let ptr = $ptr;
         let ptr = ptr as *const $ptr_type;
         $crate::backend::expect_copy_ptr(ptr);
