@@ -372,7 +372,7 @@ pub const _: () = {};
 #[doc(hidden)]
 macro_rules! code_assert_unsafe_methods {
     (
-        $owned_receiver:expr, $method:ident => $( $arg:expr ),*
+        $owned_receiver:expr =>. $method:ident => $( $arg:expr ),*
      ) => {};
 }
 // See also README.md > Related issues >
@@ -383,7 +383,7 @@ macro_rules! code_assert_unsafe_methods {
 #[doc(hidden)]
 macro_rules! code_assert_unsafe_methods {
     (
-        $owned_receiver:expr, $method:ident => $( $arg:expr ),*
+        $owned_receiver:expr =>. $method:ident => $( $arg:expr ),*
      ) => {{
         type OwnedReceiver = impl Sized;
         let _: &OwnedReceiver = &$owned_receiver;
@@ -411,6 +411,10 @@ macro_rules! code_assert_unsafe_methods {
     }};
 }
 
+/// Detect code where `unsafe_method!` is not needed at all. Maybe the method used to be `unsafe`,
+/// but not anymore.
+///
+/// Only on `nightly` toolchain and only with `assert_unsafe_methods` feature enabled.
 #[macro_export]
 #[doc(hidden)]
 macro_rules! unsafe_method_assert_unsafe_methods {
@@ -442,15 +446,9 @@ macro_rules! unsafe_method_assert_unsafe_methods {
                 let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
 
                 if false {
-                    $crate::code_assert_unsafe_methods!(owned_receiver, $method => $( $arg ),*);
-                    //type OwnedReceiver = impl Sized;
-                    //let _: &OwnedReceiver = &owned_receiver;
+                    $crate::code_assert_unsafe_methods!(owned_receiver =>. $method => $( $arg ),*);
                 }
-                /* @TODO double check and remove:
-
-                   Detect code where `unsafe_method!` is not needed at all. Maybe the method used
-                   to be `unsafe`, but not anymore.
-                */
+                // @TODO double check and remove:
                 #[deny(unused_unsafe)]
                 let _ = unsafe { owned_receiver. $method( $( $arg ),* ) };
                 ::core::unreachable!()
