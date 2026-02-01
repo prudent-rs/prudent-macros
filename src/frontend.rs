@@ -39,6 +39,25 @@
 /// The target function is safe, hence no need for `unsafe_fn`. Some args.
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_fn/fn_unused_unsafe/some_args.rs")]
+
+/// Generate path to `fun` under [expecting_unsafe_fn::arg], or [expecting_unsafe_fn::arg::arg], or
+/// [expecting_unsafe_fn::arg::arg::arg] etc, as appropriate for given number of argument(s).
+///
+/// Internal - NOT a part of public API.
+#[macro_export]
+#[doc(hidden)]
+macro_rules! expecting_unsafe_fn_path {
+    ( $( $arg:expr ),+ ) => {
+        $crate::expecting_unsafe_fn_path!( ~ { $( $arg ),+ }, $crate::backend::expecting_unsafe_fn )
+    };
+    ( ~ { $arg_first:expr, $( $arg_rest:expr ),+ }, $( $path_part:tt )+ ) => {
+        $crate::expecting_unsafe_fn_path!( ~ { $( $arg_rest ),+ }, $( $path_part )+ ::arg )
+    };
+    ( ~ { $arg_last:expr }, $( $path_part:tt )+ ) => {
+        $( $path_part )+ ::arg::fun
+    };
+}
+
 /// ```
 /// test cfg test:
 /// ```test_harness
@@ -87,42 +106,46 @@
 #[macro_export]
 macro_rules! unsafe_fn {
     ( $fn:expr => $( $arg:expr ),+ ) => {
-
-        // Enclosed in (...) and NOT in {...}. Why? Because the later does NOT work if the result is
-        // an array/slice and then it's indexed with array access suffix [usize_idx].
+        /* Enclosed in (...) and NOT in {...}. Why? Because the later does NOT work if the result is
+           an array/slice and then it's indexed with array access suffix [usize_idx].
+        */
         (
-            // Enclosed in a block, so that
-            // 1. the result can be used as a value in an outer expression, and
-            // 2. local variables don't conflict with the outer scope
+            /* Enclosed in a block, so that
+               1. the result can be used as a value in an outer expression, and
+               2. local variables don't conflict with the outer scope
+            */
             {
-                // Ensure that
-                // - $fn (the expression itself, one that yields the function to call) and
-                // - any arguments (expressions that yield values passed to the function to call)
-                //
-                // don't include any unnecessary `unsafe{...}` block(s):
-                //
-                // @TODO remove this #[deny(unused_unsafe)] ??? $fn or any of $arg could be a rexult
-                // of unsafe_method!(...) that itself MAY have "unused_unsafe" in $self!!!
+                /* Ensure that
+                   - $fn (the expression itself, one that yields the function to call) and
+                   - any arguments (expressions that yield values passed to the function to call)
+
+                   don't include any unnecessary `unsafe{...}` block(s):
+
+                   @TODO remove this #[deny(unused_unsafe)] ??? $fn or any of $arg could be a rezult
+                   of unsafe_method!(...) that itself MAY have "unused_unsafe" in $self!!!
+                */
                 #[deny(unused_unsafe)]
-                // Ensure that $fn (the expression itself) and any arguments (expressions) don't
-                // include any unsafe code/calls/casts on their  own without their own `unsafe{...}`
-                // block(s).
+                /* Ensure that $fn (the expression itself) and any arguments (expressions) don't
+                   include any unsafe code/calls/casts on their  own without their own `unsafe{...}`
+                   block(s).
+                */
                 let (tuple_tree, fun) = ($crate::unsafe_fn_internal_build_tuple_tree!{ $($arg),+ }, $fn);
 
                 if false {
-                    // Detect code where `unsafe_fn!` is not needed at all. Maybe the function used
-                    // to be `unsafe`, but not anymore.
-                    //
-                    // Ensure that $fn is not safe, but `unsafe`. Using
-                    // https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
-                    //
-                    // We can't just use
-                    // ```
-                    // let _: unsafe fn(_, _,... ) -> _ = fun;
-                    // ```
-                    // (with the appropriate number of _ for arguments), because that would coerce a
-                    // safe function into unsafe, and we would lose the ability to verify that it's
-                    // indeed unsafe!
+                    /* Detect code where `unsafe_fn!` is not needed at all. Maybe the function used
+                       to be `unsafe`, but not anymore.
+
+                       Ensure that $fn is not safe, but `unsafe`. Using
+                       https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
+
+                       We CAN'T just use
+                       ```
+                       let _: unsafe fn(_, _,... ) -> _ = fun;
+                       ```
+                       (with the appropriate number of _ for arguments), because that would coerce a
+                       safe function into unsafe, and we would lose the ability to verify that it's
+                       indeed unsafe!
+                    */
                     let _ = if false {
                         $crate::expecting_unsafe_fn_path!( $( $arg ),+ )
                     } else {
@@ -286,15 +309,15 @@ macro_rules! unsafe_fn_internal_access_tuple_tree_field {
 /// - $fn can **NOT** be an expression or a qualified path (which doesn't work in standard methods
 ///   calls anyways), but only an identifier.
 ///
-/// ```compile_fail
+/// ```ignore
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
 /// ```
 ///
-/// ```compile_fail
+/// ```ignore
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
 /// ```
 ///
-/// ```compile_fail
+/// ```ignore
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
 /// ```
 // TODO refactor for new checks:
@@ -349,37 +372,41 @@ pub const _: () = {};
 #[doc(hidden)]
 macro_rules! code_assert_unsafe_methods {
     (
-        $owned_receiver:expr, $method:ident
+        $owned_receiver:expr, $method:ident => $( $arg:expr ),*
      ) => {};
 }
+// See also README.md > Related issues >
+// [rust-lang/rust#88531](https://github.com/rust-lang/rust/issues/88531) No way to get compile-time
+// info from the type of local
 #[cfg(feature = "assert_unsafe_methods")]
 #[macro_export]
 #[doc(hidden)]
 macro_rules! code_assert_unsafe_methods {
     (
-        $owned_receiver:expr, $method:ident
+        $owned_receiver:expr, $method:ident => $( $arg:expr ),*
      ) => {{
         type OwnedReceiver = impl Sized;
         let _: &OwnedReceiver = &$owned_receiver;
-        //let _ = move || -> OwnedReceiver { owned_receiver };
-        //
-        //let owned_receiver: OwnedReceiver = owned_receiver;
+        /* //let _ = move || -> OwnedReceiver { owned_receiver };
 
-        // Detect code where `unsafe_method!` is not needed at all. Maybe the method used
-        // to be `unsafe`, but not anymore.
-        //
-        // See unsafe_fn for why we can't just use simple coercion like:
-        // ```
-        // let _: unsafe fn(_, _,... ) -> _ = OwnedReceiver::$method;
-        // ```
+          let owned_receiver: OwnedReceiver = owned_receiver;
 
+           Detect code where `unsafe_method!` is not needed at all. Maybe the method used
+           to be `unsafe`, but not anymore.
+
+           See unsafe_fn for why we can't just use simple coercion like:
+           ```
+           let _: unsafe fn(_, _,... ) -> _ = OwnedReceiver::$method;
+           ```
+        */
         let _ = OwnedReceiver::$method;
         // @TODO
-        /*let _ = if false {
+        let _ = if false {
+            //@TODO
             $crate::expecting_unsafe_fn_path!( first_goes_receiver $(, $arg )* )
         } else {
             OwnedReceiver::$method
-        };*/
+        };
         ::core::unreachable!();
     }};
 }
@@ -393,6 +420,7 @@ macro_rules! unsafe_method_assert_unsafe_methods {
         // See unsafe_fn for why here we enclose in (...) and not in {...}.
         (
             if false {
+                /*
                 // "Make" an owned_receiver, an instance/owned value of the same type as $self. (Of
                 // course, the instance is invalid - this is for compile-time checks only, hence `if
                 // false {...}`.)
@@ -404,6 +432,7 @@ macro_rules! unsafe_method_assert_unsafe_methods {
                 // We **cannot** just move/take/assign $self by value, in case it's a non-`Copy`
                 // `static` variable (or a deref of a non-`Copy` raw pointer). See also comments in
                 // unsafe_method_internal_build_accessors_check_args_call.
+                */
                 let mref = {
                     let rref = &( $self );
                     $crate::backend::shared_to_mut( rref )
@@ -413,14 +442,15 @@ macro_rules! unsafe_method_assert_unsafe_methods {
                 let mut owned_receiver = ::core::mem::replace(mref, unsafe{ ::core::mem::zeroed() });
 
                 if false {
-                    $crate::code_assert_unsafe_methods!(owned_receiver, $method);
+                    $crate::code_assert_unsafe_methods!(owned_receiver, $method => $( $arg ),*);
                     //type OwnedReceiver = impl Sized;
                     //let _: &OwnedReceiver = &owned_receiver;
                 }
-                // @TODO double check and remove:
-                //
-                // Detect code where `unsafe_method!` is not needed at all. Maybe the method used
-                // to be `unsafe`, but not anymore.
+                /* @TODO double check and remove:
+
+                   Detect code where `unsafe_method!` is not needed at all. Maybe the method used
+                   to be `unsafe`, but not anymore.
+                */
                 #[deny(unused_unsafe)]
                 let _ = unsafe { owned_receiver. $method( $( $arg ),* ) };
                 ::core::unreachable!()
