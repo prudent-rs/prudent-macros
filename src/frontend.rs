@@ -180,7 +180,7 @@ macro_rules! unsafe_fn {
                 /* Ensure that $fn is not safe, but `unsafe`. Using
                    https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
                 */
-                let _: fn() -> _ = if false {
+                let _ = if false {
                     $crate::backend::expecting_unsafe_fn::fun
                 } else {
                     fun
