@@ -14,32 +14,36 @@
 ///   `unsafe.`
 /// - Some arguments. The given expression (which evaluates to the function to be called) is
 ///   `unsafe.`
+/// OK with stable
 /// ```compile_fail
-/// // @TODO Docs: at your crate's top level, use either self::prudent, or crate:;prudent (but NOT
-/// // just prudent, which will fail, fortunately).
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_zero_args.rs")]
 /// ```
 ///
 /// ## Some arguments
 /// The given expression (which evaluates to the function to be called) is `unsafe.`
+// OK with stable
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/fn_expr_some_args.rs")]
 /// ```
 ///
 /// A passed parameter (expression that evaluates to a value passed to the target `unsafe` function as an argument) itself is `unsafe.`
+/// // OK with stable
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_fn/sneaked_unsafe/arg.rs")]
 /// ```
 ///
 /// The target function is safe, hence no need for `unsafe_fn`. Zero args.
+///
+/// @TODO this should fail, but it does NOT
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_fn/fn_unused_unsafe/zero_args.rs")]
 /// ```
 ///
 /// The target function is safe, hence no need for `unsafe_fn`. Some args.
+///
+/// OK on stable
 /// ```compile_fail
 #[doc = include_str!("../violations_coverage/unsafe_fn/fn_unused_unsafe/some_args.rs")]
-
 /// Generate path to `fun` under [expecting_unsafe_fn::arg], or [expecting_unsafe_fn::arg::arg], or
 /// [expecting_unsafe_fn::arg::arg::arg] etc, as appropriate for given number of argument(s).
 ///
@@ -50,16 +54,15 @@ macro_rules! expecting_unsafe_fn_path {
     ( $( $arg:expr ),+ ) => {
         $crate::expecting_unsafe_fn_path!( ~ { $( $arg ),+ }, $crate::backend::expecting_unsafe_fn )
     };
-    ( ~ { $arg_first:expr, $( $arg_rest:expr ),+ }, $( $path_part:tt )+ ) => {
+    ( ~ { $_arg_first:expr, $( $arg_rest:expr ),+ }, $( $path_part:tt )+ ) => {
         $crate::expecting_unsafe_fn_path!( ~ { $( $arg_rest ),+ }, $( $path_part )+ ::arg )
     };
-    ( ~ { $arg_last:expr }, $( $path_part:tt )+ ) => {
+    ( ~ { $_arg_last:expr }, $( $path_part:tt )+ ) => {
         $( $path_part )+ ::arg::fun
     };
 }
 
-/// ```
-/// test cfg test:
+/// @TODO consider:
 /// ```test_harness
 /// // test_harness -as per https://github.com/rust-lang/rust/issues/148942#issuecomment-3565011334
 /// #[cfg(not(test))]
@@ -164,18 +167,20 @@ macro_rules! unsafe_fn {
     };
     ($fn:expr) => {
         ({
-            // Ensure that $fn (the expression itself, one that yields a function to call) doesn't
-            // include an unnecessary `unsafe{...}` block:
-            //
-            // @TODO remove this #[deny(unused_unsafe)]
+            /* Ensure that $fn (the expression itself, one that yields a function to call) doesn't
+               include an unnecessary `unsafe{...}` block:
+             @TODO remove this #[deny(unused_unsafe)]
+            */
             #[deny(unused_unsafe)]
-            // Ensure that $fn (the expression itself) doesn't include any unsafe code/calls/casts
-            // on its own without its own `unsafe{...}` block(s):
+            /* Ensure that $fn (the expression itself) doesn't include any unsafe code/calls/casts
+               on its own without its own `unsafe{...}` block(s):
+            */
             let fun = $fn;
             if false {
-                // Ensure that $fn is not safe, but `unsafe`. Using
-                // https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
-                let _ = if false {
+                /* Ensure that $fn is not safe, but `unsafe`. Using
+                   https://doc.rust-lang.org/reference/types/function-item.html#r-type.fn-item.coercion
+                */
+                let _: fn() -> _ = if false {
                     $crate::backend::expecting_unsafe_fn::fun
                 } else {
                     fun
@@ -320,13 +325,16 @@ macro_rules! unsafe_fn_internal_access_tuple_tree_field {
 /// ```ignore
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
 /// ```
-// TODO refactor for new checks:
+// TODO refactor for new checks - CURRENTLY as a NON-DOC comment!!
+//
 // ```compile_fail
 //#[doc = include_str!("../violations_coverage/unsafe_method/fn_unused_unsafe/zero_args.rs")]
 // ```
 //
 //#[allow(clippy::useless_attribute)]
 //#[allow(clippy::needless_doctest_main)]
+// OK with stable
+//
 // ```compile_fail
 //#[doc = include_str!("../violations_coverage/unsafe_method/fn_unused_unsafe/some_args.rs")]
 // ```
@@ -348,18 +356,21 @@ macro_rules! unsafe_method {
     }
 }
 
+// OK with stable
 /// ```compile_fail,E0133
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/arg.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
+// OK with stable
 /// ```compile_fail,E0133
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_zero_args.rs")]
 /// ```
 #[cfg(doctest)]
 pub const _: () = {};
 
+// OK with stable
 /// ```compile_fail,E0133
 #[doc = include_str!("../violations_coverage/unsafe_method/sneaked_unsafe/self_some_args.rs")]
 /// ```
