@@ -110,7 +110,7 @@ macro_rules! expecting_unsafe_fn_path {
 macro_rules! unsafe_fn {
     ( $fn:expr => $( $arg:expr ),+ ) => {
         /* Enclosed in (...) and NOT in {...}. Why? Because the later does NOT work if the result is
-           an array/slice and then it's indexed with array access suffix [usize_idx].
+           an array/slice and then it's accessed with an index suffix `[usize_idx]``.
         */
         (
             /* Enclosed in a block, so that
