@@ -1,8 +1,12 @@
+/// Generate path to `fun` under [expecting_unsafe_fn::arg], or [expecting_unsafe_fn::arg::arg], or
+/// [expecting_unsafe_fn::arg::arg::arg] etc, as appropriate for given number of argument(s).
+///
+/// Internal - NOT a part of public API.
 #[macro_export]
 #[doc(hidden)]
 macro_rules! expecting_unsafe_fn_path {
     ( $( $arg:expr ),+ ) => {
-        $crate::expecting_unsafe_fn_path!( ~ { $( $arg ),+ }, $crate::backend::expecting_unsafe_fn )
+        $crate::expecting_unsafe_fn_path!( ~ { $( $arg ),+ }, ::prudent::backend::expecting_unsafe_fn )
     };
     ( ~ { $_arg_first:expr, $( $arg_rest:expr ),+ }, $( $path_part:tt )+ ) => {
         $crate::expecting_unsafe_fn_path!( ~ { $( $arg_rest ),+ }, $( $path_part )+ ::arg )
@@ -102,6 +106,7 @@ macro_rules! unsafe_fn {
 }
 //----------------------
 
+/// INTERNAL. Do NOT use directly - subject to change.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! unsafe_fn_internal_build_tuple_tree {
@@ -116,6 +121,7 @@ macro_rules! unsafe_fn_internal_build_tuple_tree {
     };
 }
 
+/// INTERNAL. Do NOT use directly - subject to change.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! unsafe_fn_internal_build_accessors_and_call {
@@ -154,6 +160,9 @@ macro_rules! unsafe_fn_internal_build_accessors_and_call {
     };
 }
 
+/// INTERNAL. Do NOT use directly - subject to change.
+///
+/// Expand an accessor group/list to access a field in the tuple_tree.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! unsafe_fn_internal_access_tuple_tree_field {
@@ -190,6 +199,9 @@ macro_rules! code_assert_unsafe_methods {
         $owned_receiver:expr =>. $method:ident => $( $arg:expr ),*
      ) => {};
 }
+// See also README.md > Related issues >
+// [rust-lang/rust#88531](https://github.com/rust-lang/rust/issues/88531) No way to get compile-time
+// info from the type of local.
 #[cfg(feature = "assert_unsafe_methods")]
 #[macro_export]
 #[doc(hidden)]
@@ -219,6 +231,10 @@ macro_rules! code_assert_unsafe_methods {
     }};
 }
 
+/// Detect code where `unsafe_method!` is not needed at all. Maybe the method used to be `unsafe`,
+/// but not anymore.
+///
+/// Only on `nightly` toolchain and only with `assert_unsafe_methods` feature enabled.
 #[macro_export]
 #[doc(hidden)]
 macro_rules! unsafe_method_assert_unsafe_methods {
