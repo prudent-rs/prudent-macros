@@ -1,46 +1,29 @@
 [package]
-name = "prudent"
-version = "0.0.3-beta"
+name = "prudent-macros"
+version = "0.0.3-gamma"
 edition = "2018"
 
 license = "BSD-2-Clause OR Apache-2.0 OR MIT"
 
 # rust-version is recognized only since Rust 1.56, but that's OK.
 #
-# Tests require Rust 1.89+. See .github/workflows/main.yml.
+# Tests require Rust 1.89+. See
+# https://github.com/prudent-rs/prudent/blob/main/.github/workflows/main.yml
 rust-version = "1.39"
 
 authors = ["Peter Lyons Kehl<peter.kehl@gmail.com>"]
-description = "Help you make Rust code safer. For both authors and reviewers."
+description = "Internal: prudent macros. Don't use directly/on its own. Instead, see and use prudent."
 
 categories = ["development-tools", "no-std", "no-std::no-alloc", "rust-patterns", "security"]
 
 keywords = ["safe", "safety", "unsafe", "isolation", "review"]
 
-repository = "https://github.com/prudent-rs/prudent"
+repository = "https://github.com/prudent-rs/prudent-macros"
 homepage = "https://github.com/prudent-rs/prudent"
 
 [lints.rust]
 unexpected_cfgs = { level = "forbid"}
 
 [features]
-# UNSTABLE Check that the method actually is unsafe. This requires nightly Rust version until
-# https://github.com/rust-lang/rust/issues/88531 is implemented. Subject to CHANGE.
-#
-# If you enable this
-# - and use `nightly` compiler
-# - either
-#   - have `#![feature(type_alias_impl_trait)]` at the top of your crate (normally your
-#     `src/lib.rs`, `src/main.rs` or `src/bin/*.rs`), or
-#   - use it in rustdocs with injection - TODO check:
-#     ```
-#     // at the top of your crate:
-#     #![doc(test(attr = ::prudent::top_header_assert_unsafe_methods!()))]
-#     ```
-#     - if you enable it conditionally, and if your feature is also called `assert_unsafe_methods`,
-#       have:
-#       ```
-#       #![cfg_attr(feature = "assert_unsafe_methods", doc(test(attr = ::prudent::top_header_assert_unsafe_methods!())))]
-#       ```
+# UNSTABLE. See prudent-rs/prudent's feature "assert_unsafe_methods".
 assert_unsafe_methods = []
-# default = ["assert_unsafe_methods"]
