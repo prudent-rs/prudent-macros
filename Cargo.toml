@@ -1,5 +1,5 @@
 [package]
-name = "prudent-macros"
+name = "prudent-internal"
 version = "0.0.3-gamma"
 edition = "2018"
 
@@ -12,13 +12,13 @@ license = "BSD-2-Clause OR Apache-2.0 OR MIT"
 rust-version = "1.39"
 
 authors = ["Peter Lyons Kehl<peter.kehl@gmail.com>"]
-description = "Internal: prudent macros. Don't use directly/on its own. Instead, see and use prudent."
+description = "prudent-rs internal. Don't use directly/on its own. Instead, see and use prudent."
 
 categories = ["development-tools", "no-std", "no-std::no-alloc", "rust-patterns", "security"]
 
 keywords = ["safe", "safety", "unsafe", "isolation", "review"]
 
-repository = "https://github.com/prudent-rs/prudent-macros"
+repository = "https://github.com/prudent-rs/prudent-internal"
 homepage = "https://github.com/prudent-rs/prudent"
 
 [lints.rust]
@@ -27,3 +27,6 @@ unexpected_cfgs = { level = "forbid"}
 [features]
 # UNSTABLE. See prudent-rs/prudent's feature "assert_unsafe_methods".
 assert_unsafe_methods = []
+
+use_with_prudent_only = []
+default = ["use_with_prudent_only"]

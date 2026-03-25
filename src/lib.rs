@@ -1,3 +1,25 @@
+#![no_std]
+
+#[cfg(feature = "use_with_prudent_only")]
+#[doc(hidden)]
+pub const CARGO_PKG_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
+// @TODO test with the feature and without
+#[cfg(feature = "use_with_prudent_only")]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! potentially_check_prudent_version {
+    () => {{
+        ::prudent::backend::assert_version($crate::CARGO_PKG_VERSION);
+    }};
+}
+#[cfg(not(feature = "use_with_prudent_only"))]
+#[macro_export]
+#[doc(hidden)]
+macro_rules! potentially_check_prudent_version {
+    () => {{}};
+}
+
 /// Generate path to `fun` under [expecting_unsafe_fn::arg], or [expecting_unsafe_fn::arg::arg], or
 /// [expecting_unsafe_fn::arg::arg::arg] etc, as appropriate for given number of argument(s).
 ///
@@ -28,6 +50,7 @@ macro_rules! unsafe_fn {
                2. local variables don't conflict with the outer scope
             */
             {
+                $crate::potentially_check_prudent_version!();
                 /* Ensure that
                    - $fn (the expression itself, one that yields the function to call) and
                    - any arguments (expressions that yield values passed to the function to call)
@@ -77,6 +100,7 @@ macro_rules! unsafe_fn {
     };
     ($fn:expr) => {
         ({
+            $crate::potentially_check_prudent_version!();
             /* Ensure that $fn (the expression itself, one that yields a function to call) doesn't
                include an unnecessary `unsafe{...}` block:
              @TODO remove this #[deny(unused_unsafe)]
@@ -177,16 +201,23 @@ macro_rules! unsafe_method {
     (
         $self:expr =>. $method:ident
      ) => {
-        $crate::unsafe_method_assert_unsafe_methods!(
-            $self =>. $method =>
-        )
+        // See unsafe_fn for why here we enclose in ({}...}) and not just in {...}.
+        ({
+            $crate::potentially_check_prudent_version!();
+            $crate::unsafe_method_assert_unsafe_methods!(
+                $self =>. $method =>
+            )
+        })
      };
     (
         $self:expr =>. $method:ident => $( $arg:expr ),*
      ) => {
-        $crate::unsafe_method_assert_unsafe_methods!(
-            $self =>. $method => $( $arg ),*
-        )
+        ({
+            $crate::potentially_check_prudent_version!();
+            $crate::unsafe_method_assert_unsafe_methods!(
+                $self =>. $method => $( $arg ),*
+            )
+        })
     }
 }
 //----------------------
@@ -241,8 +272,7 @@ macro_rules! unsafe_method_assert_unsafe_methods {
     (
         $self:expr =>. $method:ident => $( $arg:expr ),*
      ) => {
-        // See unsafe_fn for why here we enclose in (...) and not in {...}.
-        (
+        (// @TODO remove this pair of (...) and unindent the inner code:
             if false {
                 /*
                 // "Make" an owned_receiver, an instance/owned value of the same type as $self. (Of
@@ -357,6 +387,7 @@ macro_rules! unsafe_method_internal_build_accessors_check_args_call {
 #[macro_export]
 macro_rules! unsafe_static_set {
     ($static:path, $val:expr) => {{
+        $crate::potentially_check_prudent_version!();
         if false {
             let _ = $val;
             ::core::unreachable!()
@@ -372,6 +403,7 @@ macro_rules! unsafe_static_set {
     // @TODO similar to read union fields
     ($static:ident { $( $suffix:tt )* } $val:expr) => {{}};
     ($static:path { $( $suffix:tt )* } $val:expr) => {{
+        $crate::potentially_check_prudent_version!();
         if false {
             let mptr = &raw mut $static;
             let mref = unsafe { &mut *mptr };
@@ -383,61 +415,95 @@ macro_rules! unsafe_static_set {
 
 #[macro_export]
 macro_rules! unsafe_ref {
-    ($ptr:expr) => {{
-        let ptr: *const _ = $ptr;
-        unsafe { &*ptr }
-    }};
-    ($ptr:expr, $lifetime:lifetime) => {{
-        let ptr: *const _ = $ptr;
-        unsafe { &*ptr as &$lifetime _ }
-    }};
-    ($ptr:expr, $type:ty) => {{
-        let ptr = $ptr;
-        let ptr = ptr as *const $type;
-        unsafe { &*ptr }
-    }};
-    ($ptr:expr, $ptr_type:ty, $lifetime:lifetime) => {{
-        let ptr = $ptr;
-        let ptr = ptr as *const $ptr_type;
-        unsafe { &*ptr as &$lifetime _ }
-    }};
+    ($ptr:expr) => {
+        // See unsafe_fn for why here we enclose in ({}...}) and not just in {...}.
+        // @TODO test with array access (index) right of the macro invocation
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr: *const _ = $ptr;
+            unsafe { &*ptr }
+        })
+    };
+    ($ptr:expr, $lifetime:lifetime) => {
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr: *const _ = $ptr;
+            unsafe { &*ptr as &$lifetime _ }
+        })
+    };
+    ($ptr:expr, $type:ty) => {
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr = $ptr;
+            let ptr = ptr as *const $type;
+            unsafe { &*ptr }
+        })
+    };
+    ($ptr:expr, $ptr_type:ty, $lifetime:lifetime) => {
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr = $ptr;
+            let ptr = ptr as *const $ptr_type;
+            unsafe { &*ptr as &$lifetime _ }
+            })
+    };
 }
 
 #[macro_export]
 macro_rules! unsafe_mut {
-    ($ptr:expr) => {{
-        let ptr: *mut _ = $ptr;
-        unsafe { &mut *ptr }
-    }};
-    ($ptr:expr, $lifetime:lifetime) => {{
-        let ptr: *mut _ = $ptr;
-        unsafe { &mut *ptr as &$lifetime mut _}
-    }};
-    ($ptr:expr, $ptr_type:ty) => {{
-        let ptr = $ptr;
-        let ptr = ptr as *mut $ptr_type;
-        unsafe { &mut *ptr}
-    }};
-    ($ptr:expr, $ptr_type:ty, $lifetime:lifetime) => {{
-        let ptr = $ptr;
-        let ptr = ptr as *mut $ptr_type;
-        unsafe { &mut *ptr as &$lifetime mut _}
-    }};
+    ($ptr:expr) => {
+        // See unsafe_fn for why here we enclose in ({}...}) and not just in {...}.
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr: *mut _ = $ptr;
+            unsafe { &mut *ptr }
+        })
+    };
+    ($ptr:expr, $lifetime:lifetime) => {
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr: *mut _ = $ptr;
+            unsafe { &mut *ptr as &$lifetime mut _}
+        })
+    };
+    ($ptr:expr, $ptr_type:ty) => {
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr = $ptr;
+            let ptr = ptr as *mut $ptr_type;
+            unsafe { &mut *ptr}
+        })
+    };
+    ($ptr:expr, $ptr_type:ty, $lifetime:lifetime) => {
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr = $ptr;
+            let ptr = ptr as *mut $ptr_type;
+            unsafe { &mut *ptr as &$lifetime mut _}
+        })
+    };
 }
 
 #[macro_export]
 macro_rules! unsafe_val {
-    ($ptr:expr) => {{
-        let ptr: *const _ = $ptr;
-        ::prudent::backend::expect_copy_ptr(ptr);
-        unsafe { *ptr }
-    }};
-    ($ptr:expr => $ptr_type:ty) => {{
-        let ptr = $ptr;
-        let ptr = ptr as *const $ptr_type;
-        ::prudent::backend::expect_copy_ptr(ptr);
-        unsafe { *ptr }
-    }};
+    ($ptr:expr) => {
+        // See unsafe_fn for why here we enclose in ({}...}) and not just in {...}.
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr: *const _ = $ptr;
+            ::prudent::backend::expect_copy_ptr(ptr);
+            unsafe { *ptr }
+        })
+    };
+    ($ptr:expr => $ptr_type:ty) => {
+        ({
+            $crate::potentially_check_prudent_version!();
+            let ptr = $ptr;
+            let ptr = ptr as *const $ptr_type;
+            ::prudent::backend::expect_copy_ptr(ptr);
+            unsafe { *ptr }
+        })
+    };
 }
 
 /*
@@ -461,6 +527,7 @@ macro_rules! unsafe_use {
 #[macro_export]
 macro_rules! unsafe_set {
     ($ptr:expr, $value:expr) => {{
+        $crate::potentially_check_prudent_version!();
         if false {
             let _: *mut _ = $ptr;
             let _ = $value;
