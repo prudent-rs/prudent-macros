@@ -34,6 +34,7 @@ homepage = "https://github.com/prudent-rs/prudent"
 
 [lints.rust]
 unexpected_cfgs = { level = "forbid"}
+unknown_lints = { level = "forbid"}
 
 [features]
 # UNSTABLE. See prudent-rs/prudent's feature "assert_unsafe_methods".
